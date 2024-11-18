@@ -21,10 +21,11 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
+
 #include "301/CO_SDOserver.h"
 
 /* Private includes ----------------------------------------------------------*/
-
+#include "stdio.h"
 
 /* Exported types ------------------------------------------------------------*/
 
@@ -36,10 +37,26 @@ extern "C" {
 
 
 /* Exported functions prototypes ---------------------------------------------*/
+
+void GPIO_Blink_Test(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint8_t Count_of_Blink, uint16_t Period_of_blink_ms);
 uint16_t  SDO_abortCode_to_String(CO_SDO_abortCode_t Code, char* pString);
+void Get_Time(void);
+void Get_Date(void);
+void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn);
+uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms);
+uint16_t Process_Rx_Array_UART_DMA(uint8_t *Array,uint16_t Size_of_Array);
+void Message_2_UART(char *pMessage);
+
 
 /* Private defines -----------------------------------------------------------*/
-//#define PC14_OSC32_IN_Pin GPIO_PIN_14
+#define CO_Aliex_Disco407green	0x3A
+#define CO_Disco407_Blue		0x3b
+#define CO_Lower__f407xx		0x3c
+#define CO_Upper_F407XX			0x3d
+#define CO_Disco407_Green_1		0x3e
+
+#define Make_Read_SDO			1
+#define TerminalInterface		huart2
 
 #ifdef __cplusplus
 }

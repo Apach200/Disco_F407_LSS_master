@@ -34,7 +34,7 @@
 #include "OD.h"
 
 #include "format_out.h"
-#include <malloc.h>
+#include "SDO_utils.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,14 +44,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CO_Aliex_Disco407green	0x3A
-#define CO_Disco407_Blue		0x3b
-#define CO_Lower__f407xx		0x3c
-#define CO_Upper_F407XX			0x3d
-#define CO_Disco407_Green_1		0x3e
 
-#define Make_Read_SDO			1
-#define TerminalInterface		huart2
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,7 +70,19 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream3;
+
 /* USER CODE BEGIN PV */
+
+RTC_DateTypeDef DateToUpdate = {0};
+RTC_TimeTypeDef sTime = {0};
+//					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
+//						0,//uint8_t Minutes; Max_Data = 59
+//						0,//uint8_t Seconds; Max_Data = 59 */
+//						0,//uint8_t TimeFormat;Specifies the RTC AM/PM Time.
+//						0,//uint32_t SecondFraction;parameter corresponds to a time unit range between [0-1] Second with [1 Sec / SecondFraction +1] granularity
+//						0,//uint32_t DayLightSaving;  This interface is deprecated.
+//						0//uint32_t StoreOperation;
+
 uint8_t Tx_Array[16]={0x51,0x62,0x73,0x84,0x55,0x46,0x87,0x18,0x29,0x10,0x11,0x12,0x13,0x14,0x15,0x33};
 uint8_t Rx_Array[16]={0};
 uint32_t Array_32u[16]={0};
@@ -86,10 +91,13 @@ char Message_to_Terminal[128]={};
 char Message_to_Terminal_1[128]={};
 char Message_to_Terminal_2[128]={};
 char Message_to_Terminal_3[128]={};
+uint8_t Array_from_Terminal[128]={0};
 uint8_t Length_of_Message;
 uint8_t Length_of_Ext_Var=0;
 uint8_t Local_Count=0;
+uint64_t Count_of_while1=0;
 
+CANopenNodeSTM32    canOpenNodeSTM32;
 CO_SDO_abortCode_t  Code_return_SDO;
 CAN_TxHeaderTypeDef Tx_Header;
 uint32_t            TxMailbox;
@@ -100,6 +108,7 @@ uint64_t            tmp64u_1   = 0x0e1f1a1b56789a;
 uint32_t            Ticks;
 char String_H[]={"String_for_Test_UART_"};
 char String_L[]={"String_for_Test_UART_"};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,30 +125,12 @@ static void MX_RTC_Init(void);
 
 void CAN_interface_Test(void);
 void UART_interface_Test(void);
-void GPIO_Blink_Test(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint8_t Count_of_Blink, uint16_t Period_of_blink_ms);
 void Board_Name_to_Terminal(void);
 void CO_Init_Return_State(uint16_t Returned_Code);
 void SDO_abortCode_ASCII_to_Terminal(void);
+CO_SDO_abortCode_t SDO_Read_Write_Read(void);
+void TPDO_send(uint32_t Period_ms);
 
-CO_SDO_abortCode_t	read_SDO	(
-								  CO_SDOclient_t* SDO_C,
-								  uint8_t nodeId, 	//Remote_NodeID
-								  uint16_t index,	//OD_Index_of_entire_at_Remote_NodeID
-								  uint8_t subIndex, // OD_SubIndex_of_entire_at_Remote_NodeID
-								  uint8_t* buf, 	//Saved_Data_Array
-								  size_t bufSize, 	//Number_of_Bytes_Read_from_Remote_NodeID
-								  size_t* readSize 	//pointer_at_Number_of_Bytes_to_save
-								  );
-
-
-CO_SDO_abortCode_t	write_SDO 	(
-								CO_SDOclient_t* SDO_C,
-								uint8_t nodeId, 	//Remote_NodeID
-								uint16_t index,	//OD_Index_of_entire_at_Remote_NodeID
-								uint8_t subIndex, // OD_SubIndex_of_entire_at_Remote_NodeID
-								uint8_t* data,	//Data_Array_to_write_into_entire_at_Remote_NodeID
-								size_t dataSize	//Number_of_Bytes_write_into_entire_at_Remote_NodeID
-								);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -193,6 +184,7 @@ int main(void)
   MX_CAN1_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
+
   /* CANHandle : Pass in the CAN Handle to this function and it wil be used for all CAN Communications. It can be FDCan or CAN
    * and CANOpenSTM32 Driver will take of care of handling that
    * HWInitFunction : Pass in the function that initialize the CAN peripheral, usually MX_CAN_Init
@@ -205,20 +197,16 @@ int main(void)
    *
    */
 
-
-
-
-  //   GPIO_Blink_Test(GPIOA, GPIO_PIN_7|GPIO_PIN_6, 25, 33); //for_STM32F4XX_Ali_pcb
+//   GPIO_Blink_Test(GPIOA, GPIO_PIN_7|GPIO_PIN_6, 25, 33); 						// for_STM32F4XX_Ali_pcb
     GPIO_Blink_Test(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, 25, 33);// blink_at_Discovery_EVB
 //    UART_interface_Test(); //while(1){;}
-//  //  CAN_interface_Test();
+//    CAN_interface_Test();
+ HAL_UART_Receive_DMA(&huart2, Array_from_Terminal, sizeof Array_from_Terminal );
     Board_Name_to_Terminal();
-
-
 
 	HAL_TIM_Base_Start_IT(&htim4);
 
-	CANopenNodeSTM32 canOpenNodeSTM32;
+//	CANopenNodeSTM32 canOpenNodeSTM32;
 	canOpenNodeSTM32.CANHandle = &hcan1;
 	canOpenNodeSTM32.HWInitFunction = MX_CAN1_Init;
 	canOpenNodeSTM32.timerHandle = &htim4;
@@ -227,128 +215,21 @@ int main(void)
 uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
 	CO_Init_Return_State(Ret_value );
 
+	 SDO_Read_Write_Read();
+
+		  OD_PERSIST_COMM.x6000_disco_Blue_VAR32_6000_TX=0;
+		  Local_Count=0;
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-	Code_return_SDO = read_SDO (
-			    canOpenNodeSTM32.canOpenStack->SDOclient,
-			  	0x3d,										//remote desiredNodeID Upper_F407XX
-				0x6004,										//Index_of_OD_variable_at_remote_NodeID_6004_u64
-				0x00,										//Sub_Index_of_OD_variable
-				Rx_Array,									//Save_Received_Data_to Local_Array
-				8,											//Number_of_Bytes_to_read
-				(size_t*)&Length_of_Ext_Var ); HAL_Delay(100);
-
-#if 1
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal,
-		  	  	                     "\r EXECUTED read_SDO(...); for the first time\n\r "
-                  "by canOpenNodeSTM32.canOpenStack->SDOclient\n\r");
-
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);HAL_Delay(10);
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal_3,
-                "from RemoteNode=0x3d OD_Index=0x6004_u64 SubIndex=0x0\n\r and Save to \n\r"
-				"Rx_Array={0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X} \n\r",
-				Rx_Array[0],Rx_Array[1],Rx_Array[2],Rx_Array[3],
-				Rx_Array[4],Rx_Array[5],Rx_Array[6],Rx_Array[7]);
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_3, Length_of_Message);
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		SDO_abortCode_ASCII_to_Terminal();		HAL_Delay(10);
-#endif
-
-
-#if 2
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal_2, "   \n\r Run write_SDO(.....);\n\r"
-														  " write_SDO  by "
-                  	  	  	  	  	  	  	  	  	  	  "canOpenNodeSTM32.canOpenStack->SDOclient\n\r");
-		Message_to_Terminal_2[0]=0x08;
-		Message_to_Terminal_2[1]=0x08;
-		Message_to_Terminal_2[2]=0x08;
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_2, Length_of_Message);HAL_Delay(10);
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal_1,
-                "Get Data \n\r from Local\n\r Array_8u={0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X} \n\r",
-				Array_8u[0],Array_8u[1],Array_8u[2],Array_8u[3],
-				Array_8u[4],Array_8u[5],Array_8u[6],Array_8u[7]);
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_1, Length_of_Message);
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_Delay(10);
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal_2,
-                "and \n\r write to\n\r"
-                "OD_Index=0x6004 SubIndex=0x0E  @ Remote Node_0x3d\n\r");
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_2, Length_of_Message);
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_Delay(10);
-
-#endif//2
-
-Code_return_SDO = write_SDO(
-				canOpenNodeSTM32.canOpenStack->SDOclient,
-				0x3d,										//remote desiredNodeID Upper_F407XX
-				0x6004,										//Index_of_OD_variable_at_remote_NodeID_6004_u64
-				0x00,										//Sub_Index_of_OD_variable
-				Array_8u,									//Source_of_data
-				4);
-HAL_Delay(50);
-
-while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-SDO_abortCode_ASCII_to_Terminal();
-
-
-Code_return_SDO = read_SDO (
-  			    canOpenNodeSTM32.canOpenStack->SDOclient,
-				0x3d,										//remote desiredNodeID Upper_F407XX
-				0x6004,										//Index_of_OD_variable_at_remote_NodeID_6004_u64
-  				0x00,										//Sub_Index_of_OD_variable
-  				Rx_Array,									//Saved_Received_Data
-  				4,											//Number_of_Byte_to_read
-  				(size_t*)&Length_of_Ext_Var );HAL_Delay(50);
-
-#if 3
-
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal_2,
-		  	  	                     "   \n\r EXECUTED read_SDO(...); for the SECOND time\n\r");
-		Message_to_Terminal_2[0]=0x08;
-		Message_to_Terminal_2[1]=0x08;
-		Message_to_Terminal_2[2]=0x08;
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_2, Length_of_Message);
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal_1,
-                " Read NEW DATA from Node_0x3d OD_Index=0x6004 SubIndex=0x0E\n\r"
-                "and\n\r Save to\n\r");
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_1, Length_of_Message);
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal,
-                "Rx_Array={0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X} \n\r",
-				Array_8u[0],Array_8u[1],Array_8u[2],Array_8u[3],
-				Array_8u[4],Array_8u[5],Array_8u[6],Array_8u[7]);
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message); HAL_Delay(10);
-
-SDO_abortCode_ASCII_to_Terminal();
-#endif//3
-	  HAL_Delay(50);
-
-
-
-		  OD_PERSIST_COMM.x6000_disco_Blue_VAR32_6000_TX=0;
-		  Local_Count=0;
 
 
 		  while (1)
+		  {
+		   RTC_update_and_Terminal(1999);
 
 		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, !canOpenNodeSTM32.outStatusLEDGreen);
 		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
@@ -356,37 +237,56 @@ SDO_abortCode_ASCII_to_Terminal();
 		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
 
 		  canopen_app_process();
-
+#if 4
 			if(tmp32u_0 != OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R)
 			{
 			tmp32u_0 = OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R;
-
-#if 4
-		Length_of_Message = sprintf( Message_to_Terminal,
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		    Length_of_Message = sprintf( Message_to_Terminal,
 		  	  	                     "copy  OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R "
                   	  	  	  	  	  " to tmp32u_0 = 0x%X%X\n\r",(uint16_t)(tmp32u_0>>16),(uint16_t)tmp32u_0);
-
-		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
-
-
+		    //HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
+			}
 #endif	//4
 
 			if(tmp32u_1 != OD_PERSIST_COMM.x6002_disco_Blue_VAR32_6002_R)
 			{
-				Length_of_Message = sprintf( Message_to_Terminal,
+			Length_of_Message = sprintf( Message_to_Terminal,
 		                "check for updates tmp32u_1 = OD_PERSIST_COMM.x6002_disco_Blue_VAR32_6002_R"
 		                "tmp32u_1 = 0x%X%X\n\r",(uint16_t)(tmp32u_1>>16),(uint16_t)tmp32u_1);
 				while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-				HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
-
+			//HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
 			}
 
-//			  		  if(HAL_GetTick() - Ticks>1649)
-//			  		  {
-//			  			Ticks = HAL_GetTick();
-//			  			CO_TPDOsendRequest(&canOpenNodeSTM32.canOpenStack->TPDO[0] );
-//			  		  }
+			Count_of_while1++;//Counter_of_while_cycles
+
+   if(Count_of_while1==2000)
+   {
+	   uint32_t Local_var;
+	   CO_LSSmaster_t My_CO_LSSmaster;
+	   CO_ReturnError_t Code_Err;
+//	   Code_Err = CO_LSSmaster_init(
+//			   	   	   	   	   	   My_CO_LSSmaster,
+//								   10,
+//								   CANdevRx,
+//								   CANdevRxIdx,
+//								   CANidLssSlave,
+//								   CANdevTx,
+//								   CANdevTxIdx,
+//								   CANidLssMaster);
+
+	   Local_var = canOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer;
+
+	   //Local_var = CO_GET_CNT(LSS_MST);
+	   while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal,
+	                				"\n\r\n\rcanOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer = 0x%X%X\n\r\n\r",
+									(uint16_t)(Local_var>>16),(uint16_t)Local_var);
+	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
+	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+
+   }
+     TPDO_send(1700); /// uint32_t Period_ms
 
     /* USER CODE END WHILE */
 
@@ -517,26 +417,26 @@ static void MX_RTC_Init(void)
   /* USER CODE END Check_RTC_BKUP */
 
   /** Initialize RTC and set the Time and Date
-  */
-  sTime.Hours = 0x16;
-  sTime.Minutes = 0x31;
-  sTime.Seconds = 0x0;
+
+  sTime.Hours = 0x14;
+  sTime.Minutes = 0x30;
+  sTime.Seconds = 0x06;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
   {
     Error_Handler();
   }
-  sDate.WeekDay = RTC_WEEKDAY_FRIDAY;
+  sDate.WeekDay = RTC_WEEKDAY_SUNDAY;
   sDate.Month = RTC_MONTH_NOVEMBER;
-  sDate.Date = 0x16;
+  sDate.Date = 0x17;
   sDate.Year = 0x24;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
   {
     Error_Handler();
   }
-
+*/
   /** Enable the Alarm A
   */
   sAlarm.AlarmTime.Hours = 0x0;
@@ -869,121 +769,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-CO_SDO_abortCode_t	read_SDO	(
-								  CO_SDOclient_t* SDO_C,
-								  uint8_t nodeId, 	//Remote_NodeID
-								  uint16_t index,	//OD_Index_of_entire_at_Remote_NodeID
-								  uint8_t subIndex, // OD_SubIndex_of_entire_at_Remote_NodeID
-								  uint8_t* buf, 	//Saved_Data_Array
-								  size_t bufSize, 	//Number_of_Bytes_Read_from_Remote_NodeID
-								  size_t* readSize 	//pointer_at_Number_of_Bytes_to_save
-								  )
-{
-    CO_SDO_return_t SDO_ret;
-
-    // setup client (this can be skipped, if remote device don't change)
-    SDO_ret = CO_SDOclient_setup (
-    								SDO_C, CO_CAN_ID_SDO_CLI + nodeId,
-									CO_CAN_ID_SDO_SRV + nodeId,
-									nodeId);
-
-    if (SDO_ret != CO_SDO_RT_ok_communicationEnd) { return CO_SDO_AB_GENERAL; }
-
-
-
-    // initiate upload
-    SDO_ret = CO_SDOclientUploadInitiate ( SDO_C,
-    										index,
-											subIndex,
-											1000,
-											false);
-
-    if (SDO_ret != CO_SDO_RT_ok_communicationEnd) { return CO_SDO_AB_GENERAL; }
-
-
-
-    // upload data
-    do 	{
-        uint32_t timeDifference_us = 10000;
-        CO_SDO_abortCode_t abortCode = CO_SDO_AB_NONE;
-
-        SDO_ret = CO_SDOclientUpload(SDO_C, timeDifference_us, false, &abortCode, NULL, NULL, NULL);
-
-        if (SDO_ret < 0) {  return abortCode;  }
-
-        HAL_Delay(timeDifference_us/1000);// sleep_us(timeDifference_us);
-
-    	} while (SDO_ret > 0);
-
-
-    // copy data to the user buffer (for long data function must be called several times inside the loop)
-    *readSize = CO_SDOclientUploadBufRead(SDO_C, buf, bufSize);
-
-    return CO_SDO_AB_NONE;
-}
-
-CO_SDO_abortCode_t	write_SDO 	(
-								CO_SDOclient_t* SDO_C,
-								uint8_t nodeId, 	//Remote_NodeID
-								uint16_t index,	//OD_Index_of_entire_at_Remote_NodeID
-								uint8_t subIndex, // OD_SubIndex_of_entire_at_Remote_NodeID
-								uint8_t* data,	//Data_Array_to_write_into_entire_at_Remote_NodeID
-								size_t dataSize	//Number_of_Bytes_write_into_entire_at_Remote_NodeID
-								)
-{
-    CO_SDO_return_t SDO_ret;
-    bool_t bufferPartial = false;
-
-    // setup client (this can be skipped, if remote device is the same)
-    SDO_ret = CO_SDOclient_setup (	SDO_C,
-    								CO_CAN_ID_SDO_CLI + nodeId,
-									CO_CAN_ID_SDO_SRV + nodeId,
-									nodeId);
-
-    if (SDO_ret != CO_SDO_RT_ok_communicationEnd) { return -1; }
-
-
-
-    // initiate download
-    SDO_ret = CO_SDOclientDownloadInitiate(SDO_C, index, subIndex, dataSize, 1000, false);
-
-    if (SDO_ret != CO_SDO_RT_ok_communicationEnd) /**< Success, end of communication. SDO client: uploaded data must be read. */
-    	{ return -1; }
-
-
-
-    // fill data
-    size_t nWritten = CO_SDOclientDownloadBufWrite(SDO_C, data, dataSize);
-
-    if (nWritten < dataSize) { bufferPartial = true; } // If SDO Fifo buffer is too small, data can be refilled in the loop.
-
-
-
-
-    // download data
-    do {
-        uint32_t timeDifference_us = 10000;
-        CO_SDO_abortCode_t abortCode = CO_SDO_AB_NONE;
-
-        SDO_ret = CO_SDOclientDownload (	SDO_C,
-        									timeDifference_us,
-											false, bufferPartial,
-											&abortCode,
-											NULL,
-											NULL
-										);
-
-        if (SDO_ret < 0) {  return abortCode;}
-
-        HAL_Delay(timeDifference_us/1000); //sleep_us(timeDifference_us);
-
-       } while (SDO_ret > 0);
-
-    return CO_SDO_AB_NONE;
-}
-
-
-//////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
 void CAN_interface_Test(void)
 {
  Tx_Header.IDE    = CAN_ID_STD;
@@ -1028,18 +814,7 @@ void UART_interface_Test(void)
 //	  HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)(String_L), Local_Count);
 
 }
-//////////////////////////////////////////////
 
-void GPIO_Blink_Test(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint8_t Count_of_Blink, uint16_t Period_of_blink_ms)
-{
-	for(uint8_t cnt=0;cnt<Count_of_Blink;cnt++)
-	{
-	HAL_GPIO_TogglePin(GPIOx, GPIO_Pin );
-	HAL_Delay(Period_of_blink_ms);
-	}
-	  //HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_SET);
-	  HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_RESET);
-}
 
 //////////////////////////////////////////////////
 void Board_Name_to_Terminal(void)
@@ -1059,6 +834,12 @@ void Board_Name_to_Terminal(void)
 //	Chip_ID_96bit[1] = HAL_GetUIDw1();
 //	Chip_ID_96bit[2] = HAL_GetUIDw2();
 
+
+
+//	 uint8_t Sekunden=0;
+//	 uint8_t Minuten=0;
+//	 uint8_t Uhr=0;
+
 	Msg_Length = sizeof(Message_0);
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_0, Msg_Length);
@@ -1077,10 +858,9 @@ void Board_Name_to_Terminal(void)
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 	Msg_Length = sprintf( Array_for_Messages,
 			  	  	  	  "   *  Unical_ID %X%X%X%X%X%X        *\n\r",
-						  (uint16_t)(HAL_GetUIDw2()>>16),(uint16_t)(HAL_GetUIDw2() & 0x0000FFFF),
-						  (uint16_t)(HAL_GetUIDw1()>>16),(uint16_t)(HAL_GetUIDw1() & 0x0000FFFF),
-						  (uint16_t)(HAL_GetUIDw0()>>16),(uint16_t)(HAL_GetUIDw0() & 0x0000FFFF)
-
+						  (uint16_t)(HAL_GetUIDw2()>>16),(uint16_t)(HAL_GetUIDw2()),
+						  (uint16_t)(HAL_GetUIDw1()>>16),(uint16_t)(HAL_GetUIDw1()),
+						  (uint16_t)(HAL_GetUIDw0()>>16),(uint16_t)(HAL_GetUIDw0())
 						);
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_for_Messages, Msg_Length);
 
@@ -1099,8 +879,23 @@ void Board_Name_to_Terminal(void)
 						);
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_for_Messages, Msg_Length);
 
-	Msg_Length = sizeof(Message_0);
+
+
+//	if(
+//		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN)==HAL_OK
+//	  ){
+////		Uhr = sTime.Hours ;
+////		Minuten = sTime.Minutes;
+////		Sekunden = sTime.Seconds;
+//		}
+	Get_Time();
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+	Get_Date();
+	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+
+///**********************Asterics
+	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+	Msg_Length = sizeof(Message_0);
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_0, Msg_Length);
 
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
@@ -1109,7 +904,9 @@ void Board_Name_to_Terminal(void)
 	Array_for_Messages[4]=0x0a;		Array_for_Messages[5]=0x0d;
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)(Array_for_Messages), 6);
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+
 }
+
 
 //////////////////////////////////////////////////
 void CO_Init_Return_State(uint16_t Returned_Code)
@@ -1166,6 +963,133 @@ while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 }
 
 //////////////////////////////////////////
+
+
+CO_SDO_abortCode_t SDO_Read_Write_Read(void)
+{
+
+	Code_return_SDO = read_SDO (
+			    canOpenNodeSTM32.canOpenStack->SDOclient,
+			  	0x3d,										//remote desiredNodeID Upper_F407XX
+				0x6004,										//Index_of_OD_variable_at_remote_NodeID_6004_u64
+				0x00,										//Sub_Index_of_OD_variable
+				Rx_Array,									//Save_Received_Data_to Local_Array
+				8,											//Number_of_Bytes_to_read
+				(size_t*)&Length_of_Ext_Var ); HAL_Delay(100);
+
+
+#if 1
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal,
+		  	  	                     "\r EXECUTED read_SDO(...); for the first time\n\r "
+                  "by canOpenNodeSTM32.canOpenStack->SDOclient\n\r");
+
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);HAL_Delay(10);
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal_3,
+                "from RemoteNode=0x3d OD_Index=0x6004_u64 SubIndex=0x0\n\r and Save to \n\r"
+				"Rx_Array={0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X} \n\r",
+				Rx_Array[0],Rx_Array[1],Rx_Array[2],Rx_Array[3],
+				Rx_Array[4],Rx_Array[5],Rx_Array[6],Rx_Array[7]);
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_3, Length_of_Message);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		SDO_abortCode_ASCII_to_Terminal();		HAL_Delay(10);
+#endif
+
+
+#if 2
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal_2, "   \n\r Run write_SDO(.....);\n\r"
+														  " write_SDO  by "
+                  	  	  	  	  	  	  	  	  	  	  "canOpenNodeSTM32.canOpenStack->SDOclient\n\r");
+		Message_to_Terminal_2[0]=0x08;
+		Message_to_Terminal_2[1]=0x08;
+		Message_to_Terminal_2[2]=0x08;
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_2, Length_of_Message);HAL_Delay(10);
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal_1,
+                "Get Data \n\r from Local\n\r Array_8u={0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X} \n\r",
+				Array_8u[0],Array_8u[1],Array_8u[2],Array_8u[3],
+				Array_8u[4],Array_8u[5],Array_8u[6],Array_8u[7]);
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_1, Length_of_Message);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		HAL_Delay(10);
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal_2,
+                "and \n\r write to\n\r"
+                "OD_Index=0x6004 SubIndex=0x0E  @ Remote Node_0x3d\n\r");
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_2, Length_of_Message);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		HAL_Delay(10);
+
+#endif//2
+
+Code_return_SDO = write_SDO(
+				canOpenNodeSTM32.canOpenStack->SDOclient,
+				0x3d,										//remote desiredNodeID Upper_F407XX
+				0x6004,										//Index_of_OD_variable_at_remote_NodeID_6004_u64
+				0x00,										//Sub_Index_of_OD_variable
+				Array_8u,									//Source_of_data
+				4);
+HAL_Delay(50);
+
+while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+SDO_abortCode_ASCII_to_Terminal();
+
+Code_return_SDO = read_SDO (
+  			    canOpenNodeSTM32.canOpenStack->SDOclient,
+				0x3d,										//remote desiredNodeID Upper_F407XX
+				0x6004,										//Index_of_OD_variable_at_remote_NodeID_6004_u64
+  				0x00,										//Sub_Index_of_OD_variable
+  				Rx_Array,									//Saved_Received_Data
+  				4,											//Number_of_Byte_to_read
+  				(size_t*)&Length_of_Ext_Var );HAL_Delay(50);
+
+
+#if 3
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal_2,
+		  	  	                     "   \n\r EXECUTED read_SDO(...); for the SECOND time\n\r");
+		Message_to_Terminal_2[0]=0x08;
+		Message_to_Terminal_2[1]=0x08;
+		Message_to_Terminal_2[2]=0x08;
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_2, Length_of_Message);
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal_1,
+                " Read NEW DATA from Node_0x3d OD_Index=0x6004 SubIndex=0x0E\n\r"
+                "and\n\r Save to\n\r");
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal_1, Length_of_Message);
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_of_Message = sprintf( Message_to_Terminal,
+                "Rx_Array={0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X,0x%X} \n\r",
+				Array_8u[0],Array_8u[1],Array_8u[2],Array_8u[3],
+				Array_8u[4],Array_8u[5],Array_8u[6],Array_8u[7]);
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message); HAL_Delay(10);
+
+SDO_abortCode_ASCII_to_Terminal();
+ HAL_Delay(50);
+#endif//3
+ return Code_return_SDO;
+}
+/////////////////////////////////////////////////////////////////////
+
+  void TPDO_send(uint32_t Period_ms) {
+		  if(HAL_GetTick() - Ticks>Period_ms)
+		  {
+			Ticks = HAL_GetTick();
+			CO_TPDOsendRequest(&canOpenNodeSTM32.canOpenStack->TPDO[0] );
+		  }
+   }
+
+
+/////////////////////////////////////////////////////////////////////
 
 
 /* USER CODE END 4 */

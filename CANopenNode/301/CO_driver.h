@@ -284,7 +284,7 @@ typedef struct {
     volatile uint16_t
         CANtxCount;  /**< Number of messages in transmit buffer, which are waiting to be copied to the CAN module */
     uint32_t errOld; /**< Previous state of CAN errors */
-} CO_CANmodule_t;
+}   ;
 
 /**
  * Data storage object for one entry.

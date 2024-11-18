@@ -29,8 +29,119 @@ extern	DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
 extern	DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
 extern	DMA_HandleTypeDef hdma_memtomem_dma2_stream3;
 
+
+extern	RTC_HandleTypeDef hrtc;
+extern	RTC_DateTypeDef DateToUpdate;
+extern	RTC_TimeTypeDef sTime;
+
+extern	UART_HandleTypeDef huart1;
+extern	UART_HandleTypeDef huart2;
+extern	DMA_HandleTypeDef hdma_usart1_rx;
+extern	DMA_HandleTypeDef hdma_usart1_tx;
+extern	DMA_HandleTypeDef hdma_usart2_tx;
+extern	DMA_HandleTypeDef hdma_usart2_rx;
+
 /* Private functions -----------------------------------------------*/
-uint16_t  SDO_abortCode_to_String(CO_SDO_abortCode_t Code, char* pString);
+///////////////////////////////////////////////////////////////////////////
+
+void Message_2_UART(char *pMessage)
+{
+static uint8_t	Array_2_UART_a[128];
+static uint8_t	Array_2_UART_b[128];
+static uint8_t	Array_2_UART_c[128];
+static uint8_t Select_Array =0;
+uint16_t Size_to_Send;
+
+switch (Select_Array)
+{
+case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send);
+break;
+case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b, Size_to_Send);
+break;
+case 2:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c, Size_to_Send);
+break;
+default: break;
+}
+
+Select_Array++;
+Select_Array = Select_Array %3;
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+
+uint16_t Process_Rx_Array_UART_DMA(uint8_t *Array,uint16_t Size_of_Array)
+{
+uint16_t N_shift=0;
+if((uint16_t)Array[N_shift]==0x0d
+	&&
+	Array[(N_shift+1)%Size_of_Array]==0x0A
+){return N_shift; }	//end of message detected
+
+if(Array[N_shift]==0x0A
+	&&
+	Array[(N_shift+1)%Size_of_Array]==0x0d
+){return N_shift; }	//end of message detected
+return Size_of_Array+1;
+}
+
+///////////////////////////////////////////////
+
+uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms)
+{
+	static uint8_t Sekunden=0;
+	static uint8_t Minuten=0;
+	static uint8_t Uhr=0;
+	static	uint32_t Tick_old=0;
+    uint16_t cnt=0;
+//    RTC_DateTypeDef DateToUpdate = {0};
+//    RTC_TimeTypeDef sTime = {0};
+    //					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
+    //						0,//uint8_t Minutes; Max_Data = 59
+    //						0,//uint8_t Seconds; Max_Data = 59 */
+    //						0,//uint8_t TimeFormat;Specifies the RTC AM/PM Time.
+    //						0,//uint32_t SecondFraction;parameter corresponds to a time unit range between [0-1] Second with [1 Sec / SecondFraction +1] granularity
+    //						0,//uint32_t DayLightSaving;  This interface is deprecated.
+    //						0//uint32_t StoreOperation;
+
+  if(
+	  (HAL_GetTick() - Tick_old) > 1999
+	){
+	  Tick_old=HAL_GetTick();
+	  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	  HAL_RTC_GetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN);
+	 }
+
+	if(Sekunden != sTime.Seconds){
+		Sekunden = sTime.Seconds;
+		Minuten  = sTime.Minutes;
+		Uhr      = sTime.Hours;
+		Get_Time_output(&Uhr, &Minuten, &Sekunden);
+		cnt++;
+		}
+	return cnt;
+}
+
+////////////////////////////////////////////////////////////////////////////
+
+void GPIO_Blink_Test(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, uint8_t Count_of_Blink, uint16_t Period_of_blink_ms)
+{
+	for(uint8_t cnt=0;cnt<Count_of_Blink;cnt++)
+	{
+	HAL_GPIO_TogglePin(GPIOx, GPIO_Pin );
+	HAL_Delay(Period_of_blink_ms);
+	}
+	  //HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_RESET);
+}
+
 
 
 uint16_t  SDO_abortCode_to_String(CO_SDO_abortCode_t Code, char* pString)
@@ -263,3 +374,77 @@ HAL_DMA_Abort(&hdma_memtomem_dma2_stream0);
 return Length_Message;
 }//end_of_SDO_abortCode_to_String(CO_SDO_abortCode_t Code)
 
+/////////////////////////////////////////////////////////////////////////
+
+void Get_Time(void)
+{
+///Time & Date output
+	char Array_char_x_64[64]={};
+	uint16_t Length_Msg;
+	//RTC_TimeTypeDef sTime = {0};
+	//					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
+	//						0,//uint8_t Minutes; Max_Data = 59
+	//						0,//uint8_t Seconds; Max_Data = 59 */
+	//						0,//uint8_t TimeFormat;Specifies the RTC AM/PM Time.
+	//						0,//uint32_t SecondFraction;parameter corresponds to a time unit range between [0-1] Second with [1 Sec / SecondFraction +1] granularity
+	//						0,//uint32_t DayLightSaving;  This interface is deprecated.
+	//						0//uint32_t StoreOperation;
+			HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			Length_Msg=sprintf(Array_char_x_64,
+								"   *  System Time %d.%d.%02d \n\r", //  System
+								sTime.Hours, sTime.Minutes, sTime.Seconds);
+			HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_64), Length_Msg,5);
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////
+
+void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn)
+{
+//Time & Date output
+	char Array_char_x_32[32]={0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08};
+	uint16_t Length_Msg;
+	//RTC_TimeTypeDef sTime = {0};
+	//					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
+	//						0,//uint8_t Minutes; Max_Data = 59
+	//						0,//uint8_t Seconds; Max_Data = 59 */
+	//						0,//uint8_t TimeFormat;Specifies the RTC AM/PM Time.
+	//						0,//uint32_t SecondFraction;parameter corresponds to a time unit range between [0-1] Second with [1 Sec / SecondFraction +1] granularity
+	//						0,//uint32_t DayLightSaving;  This interface is deprecated.
+	//						0//uint32_t StoreOperation;
+
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+		Length_Msg=sprintf( 8+Array_char_x_32 ,
+							"%02d.%02d.%02d", //  System
+							*Uhren, *Minutn, *Sekundn);//	sTime.Hours, sTime.Minutes, sTime.Seconds
+
+		HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg+8,5);
+		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void Get_Date(void)
+{
+///Date output
+	char Array_char_x_32[32]={};
+	uint16_t Length_Msg;
+	//RTC_DateTypeDef DateToUpdate = {0};
+
+HAL_RTC_GetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN);
+while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+Length_Msg=sprintf(Array_char_x_32,
+					"   *  Date %d.%d.20%d\n\r",
+					DateToUpdate.Date, DateToUpdate.Month, DateToUpdate.Year);
+//CDC_Transmit_FS((uint8_t*)Array_for_Messages, strlen(Array_for_Messages));//to_usb
+HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg,2);
+//while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+}
+
+
+
+//////////////////////////////////////////////////
