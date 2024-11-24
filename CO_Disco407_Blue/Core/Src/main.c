@@ -44,6 +44,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+// #define ADC_SAMPLES 10
 
 /* USER CODE END PD */
 
@@ -53,12 +54,18 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 CAN_HandleTypeDef hcan1;
 
 RTC_HandleTypeDef hrtc;
 
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim14;
+DMA_HandleTypeDef hdma_tim8_up;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -68,9 +75,8 @@ DMA_HandleTypeDef hdma_usart2_tx;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 DMA_HandleTypeDef hdma_memtomem_dma2_stream0;
-DMA_HandleTypeDef hdma_memtomem_dma2_stream1;
+DMA_HandleTypeDef hdma_memtomem_dma2_stream5;
 DMA_HandleTypeDef hdma_memtomem_dma2_stream3;
-
 /* USER CODE BEGIN PV */
 
 RTC_DateTypeDef DateToUpdate = {0};
@@ -96,6 +102,7 @@ uint8_t Length_of_Message;
 uint8_t Length_of_Ext_Var=0;
 uint8_t Local_Count=0;
 uint64_t Count_of_while1=0;
+float ChipTemperature;
 
 CANopenNodeSTM32    canOpenNodeSTM32;
 CO_SDO_abortCode_t  Code_return_SDO;
@@ -121,6 +128,9 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_RTC_Init(void);
+static void MX_TIM6_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_TIM8_Init(void);
 /* USER CODE BEGIN PFP */
 
 void CAN_interface_Test(void);
@@ -183,6 +193,9 @@ int main(void)
   MX_TIM4_Init();
   MX_CAN1_Init();
   MX_RTC_Init();
+  MX_TIM6_Init();
+  MX_ADC1_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
 
   /* CANHandle : Pass in the CAN Handle to this function and it wil be used for all CAN Communications. It can be FDCan or CAN
@@ -201,8 +214,14 @@ int main(void)
     GPIO_Blink_Test(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, 25, 33);// blink_at_Discovery_EVB
 //    UART_interface_Test(); //while(1){;}
 //    CAN_interface_Test();
- HAL_UART_Receive_DMA(&huart2, Array_from_Terminal, sizeof Array_from_Terminal );
+
+	HAL_TIM_Base_Start_IT(&htim8);
+	extern uint16_t adc_buffer[];
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_SAMPLES * 2 * 2);
+    HAL_UART_Receive_DMA(&huart2, Array_from_Terminal, sizeof Array_from_Terminal );
+    HAL_Delay(2500);
     Board_Name_to_Terminal();
+
 
 	HAL_TIM_Base_Start_IT(&htim4);
 
@@ -220,6 +239,18 @@ uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
 		  OD_PERSIST_COMM.x6000_disco_Blue_VAR32_6000_TX=0;
 		  Local_Count=0;
 
+
+
+//		    if (CO_GET_CNT(LSS_MST) == 1U) {
+//		        err = CO_LSSmaster_init(co->LSSmaster, CO_LSSmaster_DEFAULT_TIMEOUT, co->CANmodule, CO_GET_CO(RX_IDX_LSS_MST),
+//		                                CO_CAN_ID_LSS_SLV, co->CANmodule, CO_GET_CO(TX_IDX_LSS_MST), CO_CAN_ID_LSS_MST);
+//		        if (err != CO_ERROR_NO) {
+//		            return err;
+//		        }
+//		    }
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -230,10 +261,9 @@ uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
 		  while (1)
 		  {
 		   RTC_update_and_Terminal(1999);
-
+		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, !canOpenNodeSTM32.outStatusLEDRed  );
 		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, !canOpenNodeSTM32.outStatusLEDGreen);
 		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, !canOpenNodeSTM32.outStatusLEDRed  );//yellow
 		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
 
 		  canopen_app_process();
@@ -263,8 +293,8 @@ uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
    if(Count_of_while1==2000)
    {
 	   uint32_t Local_var;
-	   CO_LSSmaster_t My_CO_LSSmaster;
-	   CO_ReturnError_t Code_Err;
+//	   CO_LSSmaster_t My_CO_LSSmaster;
+//	   CO_ReturnError_t Code_Err;
 //	   Code_Err = CO_LSSmaster_init(
 //			   	   	   	   	   	   My_CO_LSSmaster,
 //								   10,
@@ -339,6 +369,58 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_FALLING;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_TRGO;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -417,26 +499,26 @@ static void MX_RTC_Init(void)
   /* USER CODE END Check_RTC_BKUP */
 
   /** Initialize RTC and set the Time and Date
-
-  sTime.Hours = 0x14;
-  sTime.Minutes = 0x30;
-  sTime.Seconds = 0x06;
+  */
+  sTime.Hours = 0x13;
+  sTime.Minutes = 0x10;
+  sTime.Seconds = 0x0;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
   if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
   {
     Error_Handler();
   }
-  sDate.WeekDay = RTC_WEEKDAY_SUNDAY;
+  sDate.WeekDay = RTC_WEEKDAY_FRIDAY;
   sDate.Month = RTC_MONTH_NOVEMBER;
-  sDate.Date = 0x17;
+  sDate.Date = 0x20;
   sDate.Year = 0x24;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
   {
     Error_Handler();
   }
-*/
+
   /** Enable the Alarm A
   */
   sAlarm.AlarmTime.Hours = 0x0;
@@ -510,6 +592,90 @@ static void MX_TIM4_Init(void)
   /* USER CODE BEGIN TIM4_Init 2 */
 
   /* USER CODE END TIM4_Init 2 */
+
+}
+
+/**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 167;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 9999;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief TIM8 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM8_Init(void)
+{
+
+  /* USER CODE BEGIN TIM8_Init 0 */
+
+  /* USER CODE END TIM8_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM8_Init 1 */
+
+  /* USER CODE END TIM8_Init 1 */
+  htim8.Instance = TIM8;
+  htim8.Init.Prescaler = 41;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim8.Init.Period = 39999;
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim8.Init.RepetitionCounter = 0;
+  htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim8, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM8_Init 2 */
+
+  /* USER CODE END TIM8_Init 2 */
 
 }
 
@@ -614,7 +780,7 @@ static void MX_USART2_UART_Init(void)
   * Enable DMA controller clock
   * Configure DMA for memory to memory transfers
   *   hdma_memtomem_dma2_stream0
-  *   hdma_memtomem_dma2_stream1
+  *   hdma_memtomem_dma2_stream5
   *   hdma_memtomem_dma2_stream3
   */
 static void MX_DMA_Init(void)
@@ -643,21 +809,21 @@ static void MX_DMA_Init(void)
     Error_Handler( );
   }
 
-  /* Configure DMA request hdma_memtomem_dma2_stream1 on DMA2_Stream1 */
-  hdma_memtomem_dma2_stream1.Instance = DMA2_Stream1;
-  hdma_memtomem_dma2_stream1.Init.Channel = DMA_CHANNEL_0;
-  hdma_memtomem_dma2_stream1.Init.Direction = DMA_MEMORY_TO_MEMORY;
-  hdma_memtomem_dma2_stream1.Init.PeriphInc = DMA_PINC_ENABLE;
-  hdma_memtomem_dma2_stream1.Init.MemInc = DMA_MINC_ENABLE;
-  hdma_memtomem_dma2_stream1.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-  hdma_memtomem_dma2_stream1.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-  hdma_memtomem_dma2_stream1.Init.Mode = DMA_NORMAL;
-  hdma_memtomem_dma2_stream1.Init.Priority = DMA_PRIORITY_HIGH;
-  hdma_memtomem_dma2_stream1.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-  hdma_memtomem_dma2_stream1.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
-  hdma_memtomem_dma2_stream1.Init.MemBurst = DMA_MBURST_SINGLE;
-  hdma_memtomem_dma2_stream1.Init.PeriphBurst = DMA_PBURST_SINGLE;
-  if (HAL_DMA_Init(&hdma_memtomem_dma2_stream1) != HAL_OK)
+  /* Configure DMA request hdma_memtomem_dma2_stream5 on DMA2_Stream5 */
+  hdma_memtomem_dma2_stream5.Instance = DMA2_Stream5;
+  hdma_memtomem_dma2_stream5.Init.Channel = DMA_CHANNEL_0;
+  hdma_memtomem_dma2_stream5.Init.Direction = DMA_MEMORY_TO_MEMORY;
+  hdma_memtomem_dma2_stream5.Init.PeriphInc = DMA_PINC_ENABLE;
+  hdma_memtomem_dma2_stream5.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_memtomem_dma2_stream5.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+  hdma_memtomem_dma2_stream5.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+  hdma_memtomem_dma2_stream5.Init.Mode = DMA_NORMAL;
+  hdma_memtomem_dma2_stream5.Init.Priority = DMA_PRIORITY_HIGH;
+  hdma_memtomem_dma2_stream5.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+  hdma_memtomem_dma2_stream5.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+  hdma_memtomem_dma2_stream5.Init.MemBurst = DMA_MBURST_SINGLE;
+  hdma_memtomem_dma2_stream5.Init.PeriphBurst = DMA_PBURST_SINGLE;
+  if (HAL_DMA_Init(&hdma_memtomem_dma2_stream5) != HAL_OK)
   {
     Error_Handler( );
   }
@@ -688,9 +854,18 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* DMA2_Stream4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream4_IRQn);
   /* DMA2_Stream7_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
@@ -880,18 +1055,20 @@ void Board_Name_to_Terminal(void)
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_for_Messages, Msg_Length);
 
 
-
-//	if(
-//		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN)==HAL_OK
-//	  ){
-////		Uhr = sTime.Hours ;
-////		Minuten = sTime.Minutes;
-////		Sekunden = sTime.Seconds;
-//		}
+///////////////////////TimeStamp___DataStamp
 	Get_Time();
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 	Get_Date();
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+
+///////////////Temperature //////////////////////////////////////////
+	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+	extern uint16_t adc_buffer[];
+	ChipTemperature = (float)process_adc_buffer(adc_buffer);;
+	Msg_Length = sprintf( Array_for_Messages,
+			  	  	  	  "   *  Temperature %03.2f                      *\n\r",
+						  ChipTemperature );
+	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_for_Messages, Msg_Length);
 
 ///**********************Asterics
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
@@ -1090,6 +1267,7 @@ SDO_abortCode_ASCII_to_Terminal();
 
 
 /////////////////////////////////////////////////////////////////////
+
 
 
 /* USER CODE END 4 */

@@ -42,3 +42,6 @@ CO_EvolutionBoard from Aliexpress BLACK color STM32F4XX LOWER PCB at mezzanine.
 CO_EvolutionBoard from Aliexpress BLACK color STM32F4XX UPPER PCB at mezzanine.
 
 
+Master LSS initsializiruyetsya vo vremya protsessa initsializatsii CANopenNode. 
+Za isklyucheniyem vklyucheniya mastera LSS v konfiguratore, dlya bazovoy raboty ne trebuyetsya nikakoy dopolnitel'noy konfiguratsii vremeni vypolneniya. 
+Master LSS vypolnyayet bazovuyu proverku komand i posledovatel'nosti komand

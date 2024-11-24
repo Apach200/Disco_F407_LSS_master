@@ -32,6 +32,8 @@
 #include "CO_storageBlank.h"
 #include "OD.h"
 
+#include "format_out.h"
+
 CANopenNodeSTM32*
     canopenNodeSTM32; // It will be set by canopen_app_init and will be used across app to get access to CANOpen objects
 
@@ -90,9 +92,9 @@ canopen_app_init(CANopenNodeSTM32* _canopenNodeSTM32) {
         log_printf("Error: Can't allocate memory\n");
         return 1;
     } else {
-        log_printf("Allocated %u bytes for CANopen objects\n", heapMemoryUsed);
-    }
-
+        //log_printf("Allocated %u bytes for CANopen objects\n", heapMemoryUsed);
+        Message_2_UART("Allocated %u bytes for CANopen objects\n", heapMemoryUsed);
+    	}
     canopenNodeSTM32->canOpenStack = CO;
 
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE

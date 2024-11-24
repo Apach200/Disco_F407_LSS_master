@@ -41,10 +41,44 @@ extern	DMA_HandleTypeDef hdma_usart1_tx;
 extern	DMA_HandleTypeDef hdma_usart2_tx;
 extern	DMA_HandleTypeDef hdma_usart2_rx;
 
+
+
+uint16_t adc_buffer[ADC_SAMPLES * 2 * 2] = {0};
+
 /* Private functions -----------------------------------------------*/
 ///////////////////////////////////////////////////////////////////////////
 
-void Message_2_UART(char *pMessage)
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
+{
+process_adc_buffer(&adc_buffer[0]);
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+process_adc_buffer(&adc_buffer[ADC_SAMPLES * 2]);
+}
+
+
+// Process half a buffer full of data
+float process_adc_buffer(uint16_t *buffer)
+{
+    uint32_t sum1 = 0;
+   // uint32_t tmp = 0;
+    //uint32_t sum2 = 0;
+    for (int i = 0; i < ADC_SAMPLES; ++i) {
+    	sum1 += buffer[i * 2];
+    	//sum2 += buffer[1 + i * 2];
+    }
+    //	tmp =  4096 * ADC_SAMPLES;
+    //float	temperature = 25.0 + ((float)sum1)/((float)tmp)*400.;
+    float	temperature = (float)(sum1*3.3)/40960.*400;
+   // vref = (float)sum2 / 1000 / ADC_SAMPLES;
+return temperature;
+}
+
+
+
+void Message_2_UART(char *pMessage, uint16_t Argument)
 {
 static uint8_t	Array_2_UART_a[128];
 static uint8_t	Array_2_UART_b[128];
@@ -54,15 +88,18 @@ uint16_t Size_to_Send;
 
 switch (Select_Array)
 {
-case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage ,Argument);
+		Select_Array=1;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send);
 break;
-case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
+case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage,Argument);
+		Select_Array=2;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b, Size_to_Send);
 break;
-case 2:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+case 2:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage,Argument);
+		Select_Array=0;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c, Size_to_Send);
 break;
@@ -438,7 +475,7 @@ void Get_Date(void)
 HAL_RTC_GetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN);
 while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 Length_Msg=sprintf(Array_char_x_32,
-					"   *  Date %d.%d.20%d\n\r",
+					"   *  Date %d.%d.20%02d\n\r",
 					DateToUpdate.Date, DateToUpdate.Month, DateToUpdate.Year);
 //CDC_Transmit_FS((uint8_t*)Array_for_Messages, strlen(Array_for_Messages));//to_usb
 HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg,2);

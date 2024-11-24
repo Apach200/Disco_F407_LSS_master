@@ -15,7 +15,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="DS301_profile.xdd" fileCreator="01.Nov.2024" fileCreationDate="2020-11-23" fileCreationTime="16:00:00.0000000+05:00" fileModifiedBy="" fileModificationDate="2024-11-05" fileModificationTime="21:12:20.4119423+05:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q1="http://www.canopen.org/xml/1.1" xsi:type="q1:ProfileBody_Device_CANopen" formatName="CANopen" formatVersion="1.0" fileName="DS301_profile.xdd" fileCreator="01.Nov.2024" fileCreationDate="2020-11-23" fileCreationTime="16:00:00.0000000+05:00" fileModifiedBy="" fileModificationDate="2024-11-24" fileModificationTime="15:55:34.5065454+05:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <q1:DeviceIdentity>
         <q1:vendorName>Chromos_A</q1:vendorName>
         <q1:vendorID>0xAFFEAFFd</q1:vendorID>
@@ -306,9 +306,18 @@
         <q1:parameterList>
           <q1:parameter uniqueID="UID_OBJ_1000">
             <description lang="en">* bit 16-31: Additional information
-* bit 0-15: Device profile number</description>
+* bit 0-15: Device profile number
+
+Default value: 00%%0191h.
+
+       Additional information                        |  General information
+-----------------------------------------------------|-----------------------
+		       |    |     		     |
+Special functionality  |  M |  I/O functionality     |  Device profile number
+-----------------------|----|------------------------|-----------------------
+	00	       |0/1 |  0x01 to 0x0f	     |   0x191 = 401</description>
             <UDINT />
-            <q1:defaultValue value="0x00000000" />
+            <q1:defaultValue value="0x000F0191" />
             <q1:property name="CO_countLabel" value="NMT" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
@@ -329,7 +338,7 @@
             <label lang="en">Manufacturer status register</label>
             <UDINT />
             <q1:defaultValue value="0" />
-            <q1:property name="CO_disabled" value="true" />
+            <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1003">
             <description lang="en">* Sub Index 0: Contains number of actual errors. 0 can be written to clear error history.
@@ -407,10 +416,17 @@
             <UDINT />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1005" access="readWrite">
-            <description lang="en">* bit 31: set to 0
-* bit 30: If set, CANopen device generates SYNC object
+            <description lang="en">* bit 31: set to 0 (do not care)
+
+* bit 30: If 1, CANopen device generates SYNC object
+	  If 0, CANopen device does not generate SYNC message
+
 * bit 11-29: set to 0
-* bit 0-10: 11-bit CAN-ID</description>
+
+* bit 0-10: 11-bit CAN-ID
+
+Default_value 0x00000080
+</description>
             <UDINT />
             <q1:defaultValue value="0x00000080" />
             <q1:property name="CO_countLabel" value="SYNC" />
@@ -432,13 +448,11 @@
           <q1:parameter uniqueID="UID_OBJ_1008">
             <label lang="en">Manufacturer device name</label>
             <STRING />
-            <q1:property name="CO_disabled" value="true" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1009">
             <label lang="en">Manufacturer hardware version</label>
             <STRING />
-            <q1:property name="CO_disabled" value="true" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_100A">
@@ -519,7 +533,7 @@
 * bit 11-29: set to 0
 * bit 0-10: 11-bit CAN-ID</description>
             <UDINT />
-            <q1:defaultValue value="0x00000100" />
+            <q1:defaultValue value="0x0000013b" />
             <q1:property name="CO_countLabel" value="TIME" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
@@ -621,24 +635,28 @@
             <q1:defaultValue value="0x04" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_101801">
-            <label lang="en">Vendor-ID</label>
+            <description lang="en">0x000000BE (Marathon Ltd).</description>
             <UDINT />
-            <q1:defaultValue value="0x00000000" />
+            <q1:defaultValue value="0xAFFEAFFd" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_101802">
-            <label lang="en">Product code</label>
+            <description lang="en">Project code 	|	Description
+----------------------------------------------------------------------------
+	41h 	|	Digital input, counters and digital output R2DIO
+----------------------------------------------------------------------------
+	42h 	|	Analog I/O R2AIO 16-bit</description>
             <UDINT />
-            <q1:defaultValue value="0x00000000" />
+            <q1:defaultValue value="0x00410000" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_101803">
             <label lang="en">Revision number</label>
             <UDINT />
-            <q1:defaultValue value="0x00000000" />
+            <q1:defaultValue value="0x00010002" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_101804">
             <label lang="en">Serial number</label>
             <UDINT />
-            <q1:defaultValue value="0x00000000" />
+            <q1:defaultValue value="0x19681942" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1019" access="readWrite">
             <description lang="en">* Value 0: SYNC message is transmitted with data length 0.
@@ -852,22 +870,73 @@
           <q1:parameter uniqueID="UID_OBJ_1200">
             <description lang="en">Sub-indexes 1 and 2:
 * bit 11-31: set to 0
-* bit 0-10: 11-bit CAN-ID</description>
+* bit 0-10: 11-bit CAN-ID
+
+  31       30	   29      28               11  10                          0
+-----------------------------------------------------------------------------
+  	|	|	  |	  0x0000h      |      11-bit CAN-ID
+valid   |  dyn  |  frame  |--------------------------------------------------
+        |       |         |            29-bit CAN-ID
+-----------------------------------------------------------------------------
+MSB									  LSB
+
+An SDO exists only if at both sub-index 01h and sub-index 02h the bit valid (bit 31) is set to 0b.
+
+CANopen devices supporting the CAN base frame type only, an attempt to set bit 29 (frame) to 1b is responded with the SDO abort transfer service (abort code: 0609 0030h). 
+
+It is not allowed to change bits 0 to 29 while the object exists and is valid (bit 31 = 0b).
+
+If the bit dyn (bit 30) of sub-index 01h or sub-index 02h is set to 1b the values of all sub-indices of this object shall not be stored in non-volatile memory. 
+
+The bit dyn may be used to mark dynamic SDO connections between CANopen devices. 
+
+Dynamic SDO connections are temporarily configured. 
+
+Static SDO connections are configured non-temporarily and may be saved in non-volatile memory. 
+
+The CANopen manager may use the dyn bit to detect temporarily configured SDO connections.
+
+SDO sushchestvuyet tol'ko v tom sluchaye, yesli i v podindekse 01h, i v podindekse 02h bit valid (bit 31) ustanovlen v 0b.
+
+
+
+Ustroystva CANopen, podderzhivayushchiye tol'ko bazovyy tip kadra CAN, popytka ustanovit' bit 29 (kadr) v 1b vyzyvayet otvet s pomoshch'yu sluzhby preryvaniya peredachi SDO (kod preryvaniya: 0609 0030h). 
+
+
+
+Ne dopuskayetsya izmeneniye bitov 0–29, poka ob"yekt sushchestvuyet i yavlyayetsya dopustimym (bit 31 = 0b).
+
+
+
+Yesli bit dyn (bit 30) podindeksa 01h ili podindeksa 02h ustanovlen v 1b, znacheniya vsekh podindeksov etogo ob"yekta ne budut sokhranyatsya v energonezavisimoy pamyati. 
+
+Bit dyn mozhet ispolzovatsya dlya markirovki dinamicheskikh soyedineniy SDO mezhdu ustroystvami CANopen. 
+
+Dinamicheskiye soyedineniya SDO vremenno nastraivayutsya. 
+
+Staticheskiye soyedineniya SDO nastraivayutsya ne vremenno i mogut byt sokhraneny v energonezavisimoy pamyati. 
+
+Menedzher CANopen mozhet ispolzovat bit dyn dlya obnaruzheniya vremenno nastroyennykh soyedineniy SDO.
+
+</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1200" />
             <q1:property name="CO_countLabel" value="SDO_SRV" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_120000">
-            <label lang="en">Highest sub-index supported</label>
+            <description lang="en">The number of supported object entries in the SDO object record is specified at sub-index 00h.
+</description>
             <USINT />
             <q1:defaultValue value="2" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_120001">
-            <label lang="en">COB-ID client to server (rx)</label>
+            <description lang="en">Sub-index 02h specify the COB-ID for this SDO.</description>
             <UDINT />
             <q1:defaultValue value="0x600+$NODEID" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_SUB_120002">
-            <label lang="en">COB-ID server to client (tx)</label>
+            <description lang="en">The values at sub-index 01h and sub-index 02h specify the COB-ID for this SDO.
+
+ Sub-index 03h is the node-ID of the SDO client associated to this CANopen device.</description>
             <UDINT />
             <q1:defaultValue value="0x580+$NODEID" />
           </q1:parameter>
@@ -909,7 +978,50 @@
   * bit 30: If set, value is assigned dynamically
   * bit 11-29: set to 0
   * bit 0-10: 11-bit CAN-ID
-* Node-ID of the SDO server, 0x01 to 0x7F</description>
+* Node-ID of the SDO server, 0x01 to 0x7F
+
+  31       30	   29      28                11 10                          0
+-----------------------------------------------------------------------------
+  	|	|	  |	  0x0000h      |      11-bit CAN-ID
+valid   |  dyn  |  frame  |--------------------------------------------------
+        |       |         |            29-bit CAN-ID
+-----------------------------------------------------------------------------
+MSB	
+								  LSB
+An SDO exists only if at both sub-index 01h and sub-index 02h the bit valid (bit 31) is set to 0b.
+CANopen devices supporting the CAN base frame type only, an attempt to set bit 29 (frame) to 1b is responded with the SDO abort transfer service (abort code: 0609 0030h).
+
+ It is not allowed to change bits 0 to 29 while the object exists and is valid (bit 31 = 0b).
+
+ CANopen devices supporting the enabling (bit 31 = 0b) and disabling (bit 31 = 1b) of the SDO client only shall respond with the SDO abort transfer service (abort code: 0609 0030h or 0800 000h) on an attempt to change the
+values from bit 0 to bit 30.
+
+If the bit dyn (bit 30) of sub-index 01h or sub-index 02h is set to 1b the values of all sub-indices of this object shall not be stored in non-volatile memory. 
+
+The bit dyn may be used to mark dynamic SDO connections between CANopen devices. 
+Dynamic SDO connections are temporarily configured. 
+Static SDO connections are configured non-temporarily and may be saved in nonvolatile memory. 
+
+The CANopen manager may use the dyn bit to detect temporarily configured
+SDO connections.
+
+------------------------------------------------------------
+SDO sushchestvuyet tol'ko v tom sluchaye, yesli i v podindekse 01h, i v podindekse 02h bit valid (bit 31) ustanovlen v 0b.
+
+Ustroystva CANopen, podderzhivayushchiye tol'ko bazovyy tip kadra CAN, popytka ustanovit' bit 29 (kadr) v 1b vyzyvayetsya sluzhboy otmeny peredachi SDO (kod otmeny: 0609 0030h).
+
+Ne dopuskayetsya izmeneniye bitov 0–29, poka ob"yekt sushchestvuyet i yavlyayetsya dopustimym (bit 31 = 0b).
+
+Ustroystva CANopen, podderzhivayushchiye vklyucheniye (bit 31 = 0b) i otklyucheniye (bit 31 = 1b) kliyenta SDO, dolzhny otvechat' sluzhboy preryvaniya peredachi SDO (kod preryvaniya: 0609 0030h ili 0800 000h) pri popytke izmenit' znacheniya s bita 0 na bit 30.
+
+Yesli bit dyn (bit 30) podindeksa 01h ili podindeksa 02h ustanovlen v 1b, znacheniya vsekh podindeksov etogo ob"yekta ne budut sokhranyat'sya v energonezavisimoy pamyati. 
+
+Bit dyn mozhet ispol'zovat'sya dlya markirovki dinamicheskikh soyedineniy SDO mezhdu ustroystvami CANopen. 
+Dinamicheskiye soyedineniya SDO nastraivayutsya vremenno. 
+Staticheskiye soyedineniya SDO nastraivayutsya ne vremenno i mogut sokhranyat'sya v energonezavisimoy pamyati. 
+
+Menedzher CANopen mozhet ispol'zovat' bit dyn dlya obnaruzheniya vremenno nastroyennykh soyedineniy SDO.
+</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1280" />
             <q1:property name="CO_countLabel" value="SDO_CLI" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
@@ -935,7 +1047,24 @@
             <q1:defaultValue value="0x01" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1400">
-            <label lang="en">RPDO communication parameter</label>
+            <description lang="en">Vse kadry, na kotoryye uzel dolzhen otvetit' i obrabotat', opisyvayutsya etim ob"yektom.
+
+Vsego dostupno 128 Receive PDO (R_PDO) dlya 128 kadrov. 
+
+Cherez podindeksy kazhdyy R_PDO sokhranyayet nastroyki, kasayushchiyesya ozhidayemogo kadra. 
+
+Syuda vkhodit takaya informatsiya, kak:
+ • COB-ID kadra, kotoryy dolzhen byt' poluchen
+ • Tip peredachi
+ • Vremya zaderzhki
+
+
+All frames a node is to respond to and process are described by this object. A total of 128 Receive PDOs (R_PDOs) are available for 128 frames. 
+Through the sub-indexes, each R_PDO saves settings regarding the frame to be expected.
+ This includes information such as: 
+• COB-ID of the frame to be received 
+• Transmission type 
+• Delay time</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1400" />
             <q1:property name="CO_countLabel" value="RPDO" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
@@ -987,7 +1116,16 @@
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1600">
-            <label lang="en">RPDO mapping parameter</label>
+            <description lang="en">Ob"yekt, kotoryy tochno opredelyayet znacheniye 8 baytov pol'zovatel'skikh dannykh i konkretnyye formaty dannykh, vklyuchennyye v R_PDO, sootvetstvuyet kazhdomu R_PDO.
+
+
+Kazhdyy ob"yekt otobrazheniya imeyet devyat' podindeksov: 
+Pervaya zapis' 
+(Sub[0]) soderzhit kolichestvo otobrazhennykh ob"yektov, 
+Sub[1]-Sub[8] predstavlyayut vozmozhnyye zapisi (8 * 1 bayt dlya 8-baytovogo polya pol'zovatel'skikh dannykh)
+
+
+Another object that precisely defines the meaning of the 8 bytes of user data and the specific data formats included in the R_PDO corresponds to each R_PDO. Each mapping object has nine sub-indexes: The first entry (Sub[0]) contains the number of mapped objects, Sub[1]-Sub[8] represent the possible entries (8 * 1 byte for the 8-byte user data field).</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1600" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
@@ -1087,7 +1225,29 @@
             <q1:defaultValue value="0x00000000" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1800">
-            <label lang="en">TPDO communication parameter</label>
+            <description lang="en">Vse kadry, otpravlyayemyye uzlom, opisyvayutsya etim ob"yektom.
+ 
+Vsego dostupno 128 PDO peredachi (T_PDO) dlya 128 kadrov. 
+
+S pomoshch'yu podindeksov kazhdyy T_PDO sokhranyayet nastroyki, opredelyayushchiye, kak otpravlyat' kadr. 
+
+Eto vklyuchayet v sebya takuyu ​​informatsiyu, kak: 
+
+• COB-ID otpravlyayemogo kadra 
+
+• Tip peredachi 
+
+• Vremya zaderzhki
+
+
+
+All frames a node sends are described by this object. 
+A total of 128 Transmit PDOs (T_PDOs) are available for 128 frames. 
+Through the sub-indexes, each T_PDO saves settings that define how to send the frame. 
+This includes information such as: 
+• COB-ID of the frame to be sent 
+• Transmission type 
+• Delay time</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1800" />
             <q1:property name="CO_countLabel" value="TPDO" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
@@ -1123,7 +1283,27 @@
             <q1:defaultValue value="0" />
           </q1:parameter>
           <q1:parameter uniqueID="UID_OBJ_1A00">
-            <label lang="en">TPDO mapping parameter</label>
+            <description lang="en">Another object that precisely defines the specific data formats and data to be transmitted with the T_PDO corresponds to each T_PDO. 
+
+Data formats A total of 8 bytes of data can be transmitted per PDO. 
+
+Each mapping object has nine sub-indexes: 
+The first entry (Sub[0]) contains the number of mapped objects, 
+Sub[1]-Sub[8] represent the possible entries 
+(8 * 1 byte for the 8-byte user data field).
+
+
+Drugoy ob"yekt, kotoryy tochno opredelyayet konkretnyye formaty dannykh i dannyye, kotoryye budut peredavat'sya s pomoshch'yu T_PDO, sootvetstvuyet kazhdomu T_PDO. 
+
+Formaty dannykh Vsego mozhet byt' peredano 8 bayt dannykh na PDO. 
+
+Kazhdyy ob"yekt otobrazheniya imeyet devyat' podindeksov:
+ 
+Pervaya zapis' (Sub[0]) soderzhit kolichestvo otobrazhennykh ob"yektov, 
+
+Sub[1]-Sub[8] predstavlyayut vozmozhnyye zapisi 
+
+(8 * 1 bayt dlya 8-baytovogo polya pol'zovatel'skikh dannykh).</description>
             <q1:dataTypeIDRef uniqueIDRef="UID_REC_1A00" />
             <q1:property name="CO_storageGroup" value="PERSIST_COMM" />
           </q1:parameter>
@@ -1255,7 +1435,7 @@
         <ProfileTechnology>CANopen</ProfileTechnology>
       </ISO15745Reference>
     </ProfileHeader>
-    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="DS301_profile.xdd" fileCreator="01.Nov.2024" fileCreationDate="2020-11-23" fileCreationTime="16:00:00.0000000+05:00" fileModificationDate="2024-11-05" fileModificationTime="21:12:20.4119423+05:00" fileVersion="1" supportedLanguages="en" xmlns="">
+    <ProfileBody xmlns:q2="http://www.canopen.org/xml/1.1" xsi:type="q2:ProfileBody_CommunicationNetwork_CANopen" formatName="CANopen" formatVersion="1.0" fileName="DS301_profile.xdd" fileCreator="01.Nov.2024" fileCreationDate="2020-11-23" fileCreationTime="16:00:00.0000000+05:00" fileModificationDate="2024-11-24" fileModificationTime="15:55:34.5065454+05:00" fileVersion="1" supportedLanguages="en" xmlns="">
       <ApplicationLayers>
         <q2:CANopenObjectList>
           <CANopenObject index="1000" name="Device type" objectType="7" PDOmapping="no" uniqueIDRef="UID_OBJ_1000" />
@@ -1475,8 +1655,8 @@
         </PhysicalLayer>
       </TransportLayers>
       <NetworkManagement>
-        <CANopenGeneralFeatures granularity="8" nrOfRxPDO="2" nrOfTxPDO="1" layerSettingServiceSlave="true" />
-        <CANopenMasterFeatures />
+        <CANopenGeneralFeatures granularity="8" nrOfRxPDO="2" nrOfTxPDO="1" ngSlave="true" ngMaster="true" NrOfNG_MonitoredNodes="1" />
+        <CANopenMasterFeatures layerSettingServiceMaster="true" />
       </NetworkManagement>
     </ProfileBody>
   </ISO15745Profile>
