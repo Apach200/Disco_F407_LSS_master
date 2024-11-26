@@ -216,8 +216,6 @@ int main(void)
 //    CAN_interface_Test();
 
 	HAL_TIM_Base_Start_IT(&htim8);
-	extern uint16_t adc_buffer[];
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_SAMPLES * 2 * 2);
     HAL_UART_Receive_DMA(&huart2, Array_from_Terminal, sizeof Array_from_Terminal );
     HAL_Delay(2500);
     Board_Name_to_Terminal();
@@ -500,8 +498,8 @@ static void MX_RTC_Init(void)
 
   /** Initialize RTC and set the Time and Date
   */
-  sTime.Hours = 0x13;
-  sTime.Minutes = 0x10;
+  sTime.Hours = 0x18;
+  sTime.Minutes = 0x30;
   sTime.Seconds = 0x0;
   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
@@ -511,7 +509,7 @@ static void MX_RTC_Init(void)
   }
   sDate.WeekDay = RTC_WEEKDAY_FRIDAY;
   sDate.Month = RTC_MONTH_NOVEMBER;
-  sDate.Date = 0x20;
+  sDate.Date = 0x16;
   sDate.Year = 0x24;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
@@ -1062,13 +1060,13 @@ void Board_Name_to_Terminal(void)
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 
 ///////////////Temperature //////////////////////////////////////////
-	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-	extern uint16_t adc_buffer[];
-	ChipTemperature = (float)process_adc_buffer(adc_buffer);;
-	Msg_Length = sprintf( Array_for_Messages,
-			  	  	  	  "   *  Temperature %03.2f                      *\n\r",
-						  ChipTemperature );
-	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_for_Messages, Msg_Length);
+//	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+//	extern uint16_t adc_buffer[];
+//	ChipTemperature = (float)process_adc_buffer(adc_buffer);;
+//	Msg_Length = sprintf( Array_for_Messages,
+//			  	  	  	  "   *  Temperature %03.2f                      *\n\r",
+//						  ChipTemperature );
+//	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_for_Messages, Msg_Length);
 
 ///**********************Asterics
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}

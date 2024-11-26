@@ -22,8 +22,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 
-#include "301/CO_SDOserver.h"
-#include "301/CO_SDOclient.h"
+#include "CO_SDOclient.h"
+#include "CO_SDOserver.h"
 #include "CO_app_STM32.h"
 #include "CANopen.h"
 #include "OD.h"

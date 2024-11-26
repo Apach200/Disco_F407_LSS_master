@@ -33,17 +33,17 @@
 		<link>
 			<name>CANopenNode</name>
 			<type>2</type>
-			<location>D:/Disco_F407_LSS_master/CANopenNode</location>
+			<location>D:/Keil_Projects/Disco_F407_LSS_master/CANopenNode</location>
 		</link>
 		<link>
 			<name>CanOpenSTM32</name>
 			<type>2</type>
-			<location>D:/Disco_F407_LSS_master/CanOpenSTM32</location>
+			<location>D:/Keil_Projects/Disco_F407_LSS_master/CanOpenSTM32</location>
 		</link>
 		<link>
 			<name>User_functions</name>
 			<type>2</type>
-			<location>D:/Disco_F407_LSS_master/User_functions</location>
+			<location>D:/Keil_Projects/Disco_F407_LSS_master/User_functions</location>
 		</link>
 	</linkedResources>
 </projectDescription>
