@@ -13,6 +13,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "format_out.h"
+#include "lcd.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -20,7 +21,6 @@
 
 /* Private define ------------------------------------------------------------*/
 
-//#define CO_Aliex_Disco407green	0x3A
 
 
 
@@ -73,7 +73,7 @@ float process_adc_buffer(uint16_t *buffer)
     //float	temperature = 25.0 + ((float)sum1)/((float)tmp)*400.;
     float	temperature = (float)(sum1*3.3)/40960.*400;
    // vref = (float)sum2 / 1000 / ADC_SAMPLES;
-return temperature;
+    return (temperature);
 }
 
 
@@ -137,8 +137,8 @@ uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms)
 	static uint8_t Uhr=0;
 	static	uint32_t Tick_old=0;
     uint16_t cnt=0;
-//    RTC_DateTypeDef DateToUpdate = {0};
-//    RTC_TimeTypeDef sTime = {0};
+    extern RTC_DateTypeDef DateToUpdate;
+    extern RTC_TimeTypeDef sTime;
     //					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
     //						0,//uint8_t Minutes; Max_Data = 59
     //						0,//uint8_t Seconds; Max_Data = 59 */
@@ -418,7 +418,7 @@ void Get_Time(void)
 ///Time & Date output
 	char Array_char_x_64[64]={};
 	uint16_t Length_Msg;
-	//RTC_TimeTypeDef sTime = {0};
+	extern RTC_TimeTypeDef sTime;
 	//					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
 	//						0,//uint8_t Minutes; Max_Data = 59
 	//						0,//uint8_t Seconds; Max_Data = 59 */
@@ -441,10 +441,10 @@ void Get_Time(void)
 
 void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn)
 {
-//Time & Date output
+//Time output
 	char Array_char_x_32[32]={0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08};
 	uint16_t Length_Msg;
-	//RTC_TimeTypeDef sTime = {0};
+	extern RTC_TimeTypeDef sTime;
 	//					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
 	//						0,//uint8_t Minutes; Max_Data = 59
 	//						0,//uint8_t Seconds; Max_Data = 59 */
@@ -458,7 +458,10 @@ void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn)
 							"%02d.%02d.%02d", //  System
 							*Uhren, *Minutn, *Sekundn);//	sTime.Hours, sTime.Minutes, sTime.Seconds
 
+
 		HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg+8,5);
+		LCD_SetPos(0, 1);	HAL_Delay(2); LCD_String(8+Array_char_x_32);HAL_Delay(5);
+
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 
 }
@@ -470,18 +473,21 @@ void Get_Date(void)
 ///Date output
 	char Array_char_x_32[32]={};
 	uint16_t Length_Msg;
-	//RTC_DateTypeDef DateToUpdate = {0};
+	extern RTC_DateTypeDef DateToUpdate;
 
 HAL_RTC_GetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN);
 while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 Length_Msg=sprintf(Array_char_x_32,
-					"   *  Date %d.%d.20%02d\n\r",
+					"   *  Date %02d.%02d.20%02d\n\r",
 					DateToUpdate.Date, DateToUpdate.Month, DateToUpdate.Year);
 //CDC_Transmit_FS((uint8_t*)Array_for_Messages, strlen(Array_for_Messages));//to_usb
 HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg,2);
 //while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 }
 
-
-
 //////////////////////////////////////////////////
+
+
+
+
+
