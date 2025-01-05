@@ -61,10 +61,11 @@ CO_SDO_abortCode_t	write_SDO 	(
 								size_t dataSize	//Number_of_Bytes_write_into_entire_at_Remote_NodeID
 								);
 
+uint16_t LSS_Init_Message_Return(CO_ReturnError_t Err, char* String_64);
 
 /* Private defines -----------------------------------------------------------*/
 
-#define TerminalInterface		huart2
+
 
 #ifdef __cplusplus
 }

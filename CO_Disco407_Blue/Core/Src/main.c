@@ -108,11 +108,11 @@ char buff[16]={8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8};
 //const	char XPOMOC[] = "XPOMOC_CANOpen";
 //const	char WC[] = "LSS_Master";
 char String_LCD[32];
-char String_2_UART[64];
+char String_2_UART[128];
 uint16_t L_str;
-static	int16_t currCounter=0 ;
+int16_t currCounter=0 ;
 int32_t prevCounter =0;
-
+CO_ReturnError_t Err_return;
 
 /* USER CODE END PV */
 
@@ -240,30 +240,37 @@ uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
 
 	 //SDO_Read_Write_Read();
 
+	while (1){};
 
-
-(CO_ReturnError_t)CO_LSSmaster_init(
-				  	  	  	  canOpenNodeSTM32.canOpenStack->LSSmaster,	//CO_LSSmaster_t* LSSmaster,
-							  CO_LSSmaster_DEFAULT_TIMEOUT,				//uint16_t timeout_ms,
-							  canOpenNodeSTM32.canOpenStack->CANmodule ,//CO_CANmodule_t* CANdevRx,
+Err_return = CO_LSSmaster_init(
+				  	  	  	  canOpenNodeSTM32.canOpenStack->LSSmaster,			//CO_LSSmaster_t* LSSmaster,
+							  CO_LSSmaster_DEFAULT_TIMEOUT,						//uint16_t timeout_ms,
+							  canOpenNodeSTM32.canOpenStack->CANmodule ,		//CO_CANmodule_t* CANdevRx,
 							  canOpenNodeSTM32.canOpenStack->RX_IDX_LSS_MST,	//uint16_t CANdevRxIdx,
-							  CO_CAN_ID_LSS_SLV,						//uint16_t CANidLssSlave,
-							  canOpenNodeSTM32.canOpenStack->CANmodule ,//CO_CANmodule_t* CANdevTx,
+							  CO_CAN_ID_LSS_SLV,								//uint16_t CANidLssSlave,
+							  canOpenNodeSTM32.canOpenStack->CANmodule ,		//CO_CANmodule_t* CANdevTx,
 							  canOpenNodeSTM32.canOpenStack->TX_IDX_LSS_MST,	//uint16_t CANdevTxIdx,
-							  CO_CAN_ID_LSS_MST							//uint16_t CANidLssMaster
+							  CO_CAN_ID_LSS_MST									//uint16_t CANidLssMaster
 							);
 
 
-		 uint16_t StateLSS =  canOpenNodeSTM32.canOpenStack->LSSmaster->state ;
-		 L_str = sprintf(String_2_UART,"canOpenNodeSTM32.canOpenStack->LSSmaster->state=0x%04x;",StateLSS);
+L_str = LSS_Init_Message_Return(Err_return, String_2_UART);
+
+
+
+//		 uint16_t StateLSS =  canOpenNodeSTM32.canOpenStack->LSSmaster->state ;
+//		 L_str = sprintf(String_2_UART,"canOpenNodeSTM32.canOpenStack->LSSmaster->state=0x%04x;\n\r",StateLSS);
+
 		 HAL_UART_Transmit(&TerminalInterface, (uint8_t*)String_2_UART, L_str, 2);
+
+
 
 while (1){};
 
 
 		  OD_PERSIST_COMM.x6000_disco_Blue_VAR32_6000_TX=0;
 		  Local_Count=0;
-
+//		  OD_CNT_LSS_MST;
 //		    if (CO_GET_CNT(LSS_MST) == 1U) {
 //		        err = CO_LSSmaster_init(co->LSSmaster, CO_LSSmaster_DEFAULT_TIMEOUT, co->CANmodule, CO_GET_CO(RX_IDX_LSS_MST),
 //		                                CO_CAN_ID_LSS_SLV, co->CANmodule, CO_GET_CO(TX_IDX_LSS_MST), CO_CAN_ID_LSS_MST);
@@ -560,13 +567,9 @@ void CO_Init_Return_State(uint16_t Returned_Code)
 	   if (Returned_Code==0){
 	     uint8_t Msg_0[128];// ="  canopen_app_init OK !\n\r\n\r";
 	   //Lngth_of_Message = sizeof(Msg_0);
-	   Lngth_of_Message = sprintf( (char*)Msg_0," canopen_app_init OK !\n\r"
-			   "  Allocated.....bytes for CANopen objects\n\r");
-	   //
-
-
-	   	  while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-	   	  HAL_UART_Transmit_DMA( &TerminalInterface, Msg_0, Lngth_of_Message);
+//	   Lngth_of_Message = sprintf( (char*)Msg_0," \n\r");
+//	   	  while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+//	   	  HAL_UART_Transmit_DMA( &TerminalInterface, Msg_0, Lngth_of_Message);
 	   	 }else if(Returned_Code==1) {
 	   		const uint8_t Msg_1[]="Error: Can't allocate memory!\n\r\n\r";
 	   		Lngth_of_Message = sizeof(Msg_1);

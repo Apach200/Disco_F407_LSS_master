@@ -99,7 +99,6 @@ void Error_Handler(void);
 #define LCD_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

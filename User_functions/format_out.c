@@ -119,13 +119,13 @@ uint16_t N_shift=0;
 if((uint16_t)Array[N_shift]==0x0d
 	&&
 	Array[(N_shift+1)%Size_of_Array]==0x0A
-){return N_shift; }	//end of message detected
+){return (N_shift); }	//end of message detected
 
 if(Array[N_shift]==0x0A
 	&&
 	Array[(N_shift+1)%Size_of_Array]==0x0d
-){return N_shift; }	//end of message detected
-return Size_of_Array+1;
+){return (N_shift); }	//end of message detected
+return (Size_of_Array+1);
 }
 
 ///////////////////////////////////////////////
@@ -163,7 +163,7 @@ uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms)
 		Get_Time_output(&Uhr, &Minuten, &Sekunden);
 		cnt++;
 		}
-	return cnt;
+	return (cnt);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -408,7 +408,7 @@ break;
 //while(hdma_memtomem_dma2_stream0.State != HAL_DMA_STATE_READY){;}
 HAL_Delay(1);
 HAL_DMA_Abort(&hdma_memtomem_dma2_stream0);
-return Length_Message;
+return (Length_Message);
 }//end_of_SDO_abortCode_to_String(CO_SDO_abortCode_t Code)
 
 /////////////////////////////////////////////////////////////////////////
