@@ -57,8 +57,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define Tim_Encoder htim3
 #define LCD_I2C hi2c1
+#define Tim_3_Encoder htim3
+#define Tim_1_Encoder htim1
 #define PC14_OSC32_IN_Pin GPIO_PIN_14
 #define PC14_OSC32_IN_GPIO_Port GPIOC
 #define PC15_OSC32_OUT_Pin GPIO_PIN_15
@@ -75,6 +76,8 @@ void Error_Handler(void);
 #define LED2_GPIO_Port GPIOA
 #define BOOT1_Pin GPIO_PIN_2
 #define BOOT1_GPIO_Port GPIOB
+#define Encoder_Key_Pin GPIO_PIN_7
+#define Encoder_Key_GPIO_Port GPIOE
 #define LD4_Pin GPIO_PIN_12
 #define LD4_GPIO_Port GPIOD
 #define LD3_Pin GPIO_PIN_13
@@ -93,12 +96,13 @@ void Error_Handler(void);
 #define SWCLK_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
-#define LCD_SCL_Pin GPIO_PIN_6
+#define LCD_SCL_Pin GPIO_PIN_8
 #define LCD_SCL_GPIO_Port GPIOB
-#define LCD_SDA_Pin GPIO_PIN_7
+#define LCD_SDA_Pin GPIO_PIN_9
 #define LCD_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define Tim_Encoder Tim_1_Encoder
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

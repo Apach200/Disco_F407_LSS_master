@@ -67,8 +67,8 @@
 
 /* USER CODE BEGIN PV */
 
-RTC_DateTypeDef DateToUpdate;// = {3, 12, 12,24};;//; ={0,0,0};   //
-RTC_TimeTypeDef sTime;// = {12, 05, 48,0,0,0,0};; // ={0,0,0};      ///
+RTC_DateTypeDef DateToUpdate;//  = {02, 01, 21, 25};  //; ={0,0,0};   //21jan2025
+RTC_TimeTypeDef sTime;// = {19, 24, 0,0,0,0,0};; // ={0,0,0};      ///19h16min
 //					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
 //						0,//uint8_t Minutes; Max_Data = 59
 //						0,//uint8_t Seconds; Max_Data = 59 */
@@ -114,6 +114,18 @@ int16_t currCounter=0 ;
 int32_t prevCounter =0;
 CO_ReturnError_t Err_return;
 
+uint8_t Menu_step=0;
+const uint16_t Datum[64]={0,0,
+						  0x30,0x31, 0x30,0x32, 0x30,0x33, 0x30,0x34, 0x30,0x35, 0x30,0x36, 0x30,0x37, 0x30,0x38, 0x30,0x39, 0x31,0x30,
+					      0x31,0x31, 0x31,0x32, 0x31,0x33, 0x31,0x34, 0x31,0x35, 0x31,0x36, 0x31,0x37, 0x31,0x38, 0x31,0x39, 0x32,0x30,
+					      0x32,0x31, 0x32,0x32, 0x32,0x33, 0x32,0x34, 0x32,0x35, 0x32,0x36, 0x32,0x37, 0x32,0x38, 0x32,0x39, 0x33,0x30,
+					      0x33,0x31
+					     };
+
+
+
+uint8_t Node_ID_Read=0xff;
+uint32_t Data_u32;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -128,10 +140,12 @@ void SDO_abortCode_ASCII_to_Terminal(void);
 CO_SDO_abortCode_t SDO_Read_Write_Read(void);
 void TPDO_send(uint32_t Period_ms);
 
-void Encoder_to_LCD(void);
+//void Callback_GTW_Read();
 
-
+int16_t Encoder_to_LCD(void);
+int16_t LCD_Menu_Encoder_with_Key(int16_t* Var_0,int16_t* Var_1,int16_t* Var_2);
 Encoder_Status encoderStatus;
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -191,6 +205,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM2_Init();
   MX_TIM5_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
   /* CANHandle : Pass in the CAN Handle to this function and it wil be used for all CAN Communications. It can be FDCan or CAN
@@ -213,9 +228,9 @@ int main(void)
 
  Encoder_Config();  // configure the encoders timer
  Encoder_Init();    // start the encoders timer
-// LCD_ini();
- //Logo_to_1602LCD();
-//Datum_to_1602LCD();
+ LCD_ini();
+// Logo_to_1602LCD();
+Datum_to_1602LCD();
 //   GPIO_Blink_Test(GPIOA, GPIO_PIN_7|GPIO_PIN_6, 25, 33); 						// for_STM32F4XX_Ali_pcb
     GPIO_Blink_Test(GPIOD, GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15, 25, 33);// blink_at_Discovery_EVB
 //    UART_interface_Test(); //while(1){;}
@@ -223,13 +238,11 @@ int main(void)
 
 	HAL_TIM_Base_Start_IT(&htim8);
     HAL_UART_Receive_DMA(&huart2, Array_from_Terminal, sizeof Array_from_Terminal );
-    HAL_Delay(2500);
+    HAL_Delay(1500);
     Board_Name_to_Terminal();
-
-
 	HAL_TIM_Base_Start_IT(&htim4);
 
-//	CANopenNodeSTM32 canOpenNodeSTM32;
+//	CANopenNodeSTM32 canOpenNodeSTM32;//перемещено вверх в глобальные переменнные
 	canOpenNodeSTM32.CANHandle = &hcan1;
 	canOpenNodeSTM32.HWInitFunction = MX_CAN1_Init;
 	canOpenNodeSTM32.timerHandle = &htim4;
@@ -238,9 +251,7 @@ int main(void)
 uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
 	CO_Init_Return_State(Ret_value );
 
-	 //SDO_Read_Write_Read();
-
-	while (1){};
+	 //SDO_Read_Write_Read();  while (1){};
 
 Err_return = CO_LSSmaster_init(
 				  	  	  	  canOpenNodeSTM32.canOpenStack->LSSmaster,			//CO_LSSmaster_t* LSSmaster,
@@ -260,45 +271,58 @@ L_str = LSS_Init_Message_Return(Err_return, String_2_UART);
 
 //		 uint16_t StateLSS =  canOpenNodeSTM32.canOpenStack->LSSmaster->state ;
 //		 L_str = sprintf(String_2_UART,"canOpenNodeSTM32.canOpenStack->LSSmaster->state=0x%04x;\n\r",StateLSS);
-
-		 HAL_UART_Transmit(&TerminalInterface, (uint8_t*)String_2_UART, L_str, 2);
-
-
-
-while (1){};
-
-
 		  OD_PERSIST_COMM.x6000_disco_Blue_VAR32_6000_TX=0;
 		  Local_Count=0;
-//		  OD_CNT_LSS_MST;
-//		    if (CO_GET_CNT(LSS_MST) == 1U) {
-//		        err = CO_LSSmaster_init(co->LSSmaster, CO_LSSmaster_DEFAULT_TIMEOUT, co->CANmodule, CO_GET_CO(RX_IDX_LSS_MST),
-//		                                CO_CAN_ID_LSS_SLV, co->CANmodule, CO_GET_CO(TX_IDX_LSS_MST), CO_CAN_ID_LSS_MST);
-//		        if (err != CO_ERROR_NO) {
-//		            return err;
-//		        }
-//		    }
 
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process();HAL_Delay(1);
 
-
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
+//
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
+//
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
+//
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
+//
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
+//
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
+//
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+//		  canopen_app_process(); HAL_Delay(1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-
-
+		  int16_t VSar_0=0, VSar_1=0, VSar_2=0;
+		  LCD_Menu_Encoder_with_Key( &VSar_0, &VSar_1, &VSar_2);
 		  while (1)
 		  {
-			  Encoder_to_LCD();
-		   RTC_update_and_Terminal(1999);
+		  //Encoder_to_LCD();
+		  RTC_update_and_Terminal(2000);
 		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, !canOpenNodeSTM32.outStatusLEDRed  );
-		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, !canOpenNodeSTM32.outStatusLEDGreen);
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
+	      // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
+//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
 
 		  canopen_app_process();
-#if 4
+#if 0
 			if(tmp32u_0 != OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R)
 			{
 			tmp32u_0 = OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R;
@@ -308,7 +332,7 @@ while (1){};
                   	  	  	  	  	  " to tmp32u_0 = 0x%X%X\n\r",(uint16_t)(tmp32u_0>>16),(uint16_t)tmp32u_0);
 		    //HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
 			}
-#endif	//4
+
 
 			if(tmp32u_1 != OD_PERSIST_COMM.x6002_disco_Blue_VAR32_6002_R)
 			{
@@ -320,8 +344,8 @@ while (1){};
 			}
 
 			Count_of_while1++;//Counter_of_while_cycles
-
-   if(Count_of_while1==2000)
+#endif	//4
+   if(0)//(Count_of_while1==2000)
    {
 	   uint32_t Local_var;
 //	   CO_LSSmaster_t My_CO_LSSmaster;
@@ -337,17 +361,17 @@ while (1){};
 //								   CANidLssMaster);
 
 	   Local_var = canOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer;
-
 	   //Local_var = CO_GET_CNT(LSS_MST);
 	   while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 		Length_of_Message = sprintf( Message_to_Terminal,
-	                				"\n\r\n\rcanOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer = 0x%X%X\n\r\n\r",
+	                				"\n\rcanOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer"
+	                				" = 0x%04X%04X  \n\r\n\r\n\r\n\r\n\r\n\r",
 									(uint16_t)(Local_var>>16),(uint16_t)Local_var);
 	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
 	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 
    }
-     TPDO_send(1700); /// uint32_t Period_ms
+    // TPDO_send(1700); /// uint32_t Period_ms
 
     /* USER CODE END WHILE */
 
@@ -373,9 +397,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;
@@ -566,10 +590,10 @@ void CO_Init_Return_State(uint16_t Returned_Code)
 
 	   if (Returned_Code==0){
 	     uint8_t Msg_0[128];// ="  canopen_app_init OK !\n\r\n\r";
-	   //Lngth_of_Message = sizeof(Msg_0);
-//	   Lngth_of_Message = sprintf( (char*)Msg_0," \n\r");
-//	   	  while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-//	   	  HAL_UART_Transmit_DMA( &TerminalInterface, Msg_0, Lngth_of_Message);
+	   Lngth_of_Message = sizeof(Msg_0);
+	   Lngth_of_Message = sprintf( (char*)Msg_0," \n\r");
+	   	  while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+	   	  HAL_UART_Transmit_DMA( &TerminalInterface, Msg_0, Lngth_of_Message);
 	   	 }else if(Returned_Code==1) {
 	   		const uint8_t Msg_1[]="Error: Can't allocate memory!\n\r\n\r";
 	   		Lngth_of_Message = sizeof(Msg_1);
@@ -724,7 +748,7 @@ SDO_abortCode_ASCII_to_Terminal();
 
 
 /////////////////////////////////////////////////////////////////////
-  void Encoder_to_LCD(void)
+  int16_t Encoder_to_LCD(void)
   {
 		encoderStatus = Encoder_Get_Status();
 
@@ -734,8 +758,8 @@ SDO_abortCode_ASCII_to_Terminal();
 				HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
 				sprintf(String_LCD,"%04d",currCounter);
 				LCD_SetPos(11, 0);
-				HAL_Delay(1);
-				LCD_String(String_LCD);HAL_Delay(1);
+				HAL_Delay(10);
+				LCD_String(String_LCD);HAL_Delay(10);
 
 				L_str=	snprintf(buff, sizeof(buff), "\n\r %04d ", currCounter);
 				while(TerminalInterface.gState != HAL_UART_STATE_READY ){;}
@@ -746,9 +770,9 @@ SDO_abortCode_ASCII_to_Terminal();
 		    	currCounter--;
 				HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
 				sprintf(String_LCD,"%04d",currCounter);
-				LCD_SetPos(11,0);HAL_Delay(1);
+				LCD_SetPos(11,0);HAL_Delay(10);
 
-				LCD_String(String_LCD);HAL_Delay(1);
+				LCD_String(String_LCD);HAL_Delay(10);
 
 				L_str=	snprintf(buff, sizeof(buff), "\n\r %04d ", currCounter);
 				while(TerminalInterface.gState != HAL_UART_STATE_READY ){;}
@@ -768,7 +792,239 @@ SDO_abortCode_ASCII_to_Terminal();
 		    								}
 
 		    	// RTC_update_and_Terminal(1999);
+		    	return (currCounter);
   }
+
+
+  /////////////////////////////////////////////////////////////////////
+    int16_t LCD_Menu_Encoder_with_Key(int16_t* Var_0,int16_t* Var_1,int16_t* Var_2)
+    {
+    	uint32_t Button_pressed;
+    	uint16_t L_string;
+    	char String_to_UART[32];
+    	char String_0_to_LCD[20];
+    	char String_1_to_LCD[20];
+    	static uint16_t Menu_Enter=0;
+    	uint32_t Timeout;
+    	uint16_t Step;
+
+    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);
+    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, GPIO_PIN_RESET);
+    	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+    	Timeout = HAL_GetTick();
+    	Step=0;
+    	if(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)==GPIO_PIN_RESET)
+    	{
+    		Button_pressed = HAL_GetTick();
+    		while(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)==GPIO_PIN_RESET)
+    		{
+    			if(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)==GPIO_PIN_RESET)
+    			{HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);}else
+    			{HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);}
+
+    			if(Button_pressed - HAL_GetTick() > 4321){ Menu_Enter=1; }// break;
+				 else {	Menu_Enter=0;
+						Button_pressed = HAL_GetTick();
+				 	 	 }
+				if(HAL_GetTick()-Timeout>7654){LCD_Clear();HAL_Delay(10);
+												return currCounter;}//exit_from_menu_after_timeout
+    		}//while(HAL_GPIO_ReadPin
+    		Button_pressed = HAL_GetTick();
+    		while(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)!=GPIO_PIN_SET){;}//__key_unpressed__
+
+			if(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)==GPIO_PIN_RESET)
+			{HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);}else
+			{HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_RESET);}
+			if(Menu_Enter==0){LCD_Clear();return currCounter;}
+
+    		HAL_Delay(50);
+    		while(Menu_Enter)
+    		{
+    			HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+    			if (Step==0){
+        		switch(Menu_Enter)
+        		{
+        		case 0: ; break;
+
+        		case 1:
+        			LCD_Clear();
+					L_string=sprintf(String_to_UART,"\n\r_Menu_Enter=1_");
+					HAL_UART_Transmit(&TerminalInterface, (uint8_t*)String_to_UART, L_string,16);
+					L_string=sprintf(String_0_to_LCD,"Var_0 %06f",(float)(*Var_0));
+        			break;
+
+        		case 2:
+        			LCD_Clear();
+    				L_string=sprintf(String_to_UART,"\n\r_Menu_Enter=2_");
+    				HAL_UART_Transmit(&TerminalInterface, (uint8_t*)String_to_UART, L_string,16);
+    				L_string=sprintf(String_0_to_LCD,"Var_1 %06f",(float)(*Var_1));
+        			break;
+
+        		case 3:
+        			LCD_Clear();
+    				L_string=sprintf(String_to_UART,"\n\r_Menu_Enter=3_");
+    				HAL_UART_Transmit(&TerminalInterface, (uint8_t*)String_to_UART, L_string,16);
+    				L_string=sprintf(String_0_to_LCD,"Var_2 %06f",(float)(*Var_2));
+        			break;
+        		default: break;
+        		}
+				LCD_SetPos(0, 0);HAL_Delay(10);
+				LCD_String(String_0_to_LCD);	HAL_Delay(10);
+        		Timeout=HAL_GetTick();
+        		Step=1;
+    			}///if (Step==0)
+			do{
+        		encoderStatus = Encoder_Get_Status();
+				if(encoderStatus==Incremented)
+				{
+					Timeout=HAL_GetTick();
+					switch(Menu_Enter)
+	        		{
+	        		case 0: ; break;
+
+	        		case 1:
+	        			*Var_0 = (*Var_0) + 1;
+	        			L_string=sprintf(String_0_to_LCD,"Var_0 %06f",(float)(*Var_0));
+	        			break;
+
+	        		case 2:
+	        			*Var_1 = (*Var_1) + 1;
+	        			L_string=sprintf(String_0_to_LCD,"Var_1 %06f",(float)(*Var_1));
+	        			break;
+
+	        		case 3:
+	        			*Var_2 = (*Var_2) + 1;
+	        			L_string=sprintf(String_0_to_LCD,"Var_2 %06f",(float)(*Var_2));
+	        			break;
+	        		default: break;
+	        		}//switch
+				LCD_SetPos(0, 0);				HAL_Delay(100);
+				LCD_String(String_0_to_LCD);	HAL_Delay(100);
+
+				}///if(encoderStatus==Incremented)
+
+				if(encoderStatus==Decremented)
+				{
+					Timeout=HAL_GetTick();
+					switch(Menu_Enter)
+	        		{
+	        		case 0: Timeout = 0; break;
+
+	        		case 1:
+	        			*Var_0 = (*Var_0) - 1;
+	        			L_string=sprintf(String_0_to_LCD,"Var_0 %d",(*Var_0));
+	        			break;
+
+	        		case 2:
+	        			*Var_1 = (*Var_1) - 1;
+	        			L_string=sprintf(String_0_to_LCD,"Var_1 %d",(*Var_1));
+	        			break;
+
+	        		case 3:
+	        			*Var_2 = (*Var_2) - 1;
+	        			L_string=sprintf(String_0_to_LCD,"Var_2 %d",(*Var_2));
+	        			break;
+	        		default: break;
+	        		}//switch
+
+				LCD_SetPos(0, 0);				HAL_Delay(100);
+				LCD_String(String_0_to_LCD);	HAL_Delay(100);
+				}
+
+				if(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)==GPIO_PIN_RESET)
+				{
+					HAL_Delay(200);
+					L_string=sprintf(String_1_to_LCD,"Ready? Y or N     ");
+					LCD_SetPos(0, 1);				HAL_Delay(10);
+					LCD_String(String_1_to_LCD);	HAL_Delay(200);
+
+					Timeout=HAL_GetTick();
+				while(
+					  (HAL_GetTick()-Timeout<5432)
+					  ||(Encoder_Get_Status()==Decremented)
+					  ||(Encoder_Get_Status()==Incremented) )
+					{
+					if(HAL_GetTick()-Timeout>5432)
+						{Menu_Enter=0;
+						LCD_Clear();HAL_Delay(10);
+						 return currCounter;}//exit_from_menu_after_timeout
+
+					encoderStatus = Encoder_Get_Status();
+					if(encoderStatus==Incremented)
+					{
+					L_string=sprintf(String_1_to_LCD,"Yes Ready to Next");
+					LCD_SetPos(0, 1);				HAL_Delay(100);
+					LCD_String(String_1_to_LCD);	HAL_Delay(200);
+					L_string=sprintf(String_0_to_LCD,"Press Key      ");
+					LCD_SetPos(0, 0);				HAL_Delay(10);
+					LCD_String(String_0_to_LCD);	HAL_Delay(200);
+					Timeout=HAL_GetTick();
+					while(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)!=GPIO_PIN_RESET)
+					{
+						if(HAL_GetTick()-Timeout>7654){LCD_Clear();HAL_Delay(10);
+														return currCounter;}//exit_from_menu_after_timeout
+					}
+					Menu_Enter++;
+					if(Menu_Enter>3){Menu_Enter=0;}
+					Step=0;
+					}//if(encoderStatus==Incremented)
+
+					if(encoderStatus==Decremented)
+					{
+					L_string=sprintf(String_1_to_LCD,"No, Out from Menu  ");
+					LCD_SetPos(0, 1);				HAL_Delay(10);
+					LCD_String(String_1_to_LCD);	HAL_Delay(200);
+
+					L_string=sprintf(String_0_to_LCD,"Press Key      ");
+					LCD_SetPos(0, 0);				HAL_Delay(10);
+					LCD_String(String_0_to_LCD);	HAL_Delay(200);
+					Timeout=HAL_GetTick();
+					while(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)!=GPIO_PIN_RESET)
+					{
+						if(HAL_GetTick()-Timeout>7654){LCD_Clear();HAL_Delay(10);
+														return currCounter;}//exit_from_menu_after_timeout
+					}
+					Menu_Enter=0;
+					}//if(encoderStatus==Decremented)
+
+
+					}//while ||(Encoder_Get_Status
+
+				encoderStatus = Encoder_Get_Status();
+				if(encoderStatus==Incremented)
+					{
+					L_string=sprintf(String_0_to_LCD,"Press Key     ");
+					LCD_SetPos(0, 0);				HAL_Delay(100);
+					LCD_String(String_0_to_LCD);	HAL_Delay(200);
+					Timeout=HAL_GetTick();
+					while(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)!=GPIO_PIN_RESET){}
+					Menu_Enter=2;
+					}//if(encoderStatus==Incremented)
+
+				if(encoderStatus==Decremented)
+					{
+					L_string=sprintf(String_0_to_LCD,"Press Key      ");
+					LCD_SetPos(0, 0);				HAL_Delay(10);
+					LCD_String(String_0_to_LCD);	HAL_Delay(200);
+					Timeout=HAL_GetTick();
+					while(HAL_GPIO_ReadPin(Encoder_Key_GPIO_Port, Encoder_Key_Pin)!=GPIO_PIN_RESET){}
+					Menu_Enter=0;
+					}//if(encoderStatus==Incremented)
+
+
+				}
+
+			  }while((HAL_GetTick()-Timeout<5432)&&(Menu_Enter!=0));
+
+			  if(HAL_GetTick()-Timeout>5432){LCD_Clear();HAL_Delay(10);Menu_Enter=0;}//exit_from_menu_after_timeout
+
+    		}//while(Menu_Enter)
+
+    	}//if(HAL_GPIO_ReadPin
+
+  		    	return (currCounter);
+    }///LCD_Menu_Encoder_with_Key()
 
 /////////////////////////////////////////////////////////////////////
 
@@ -781,6 +1037,7 @@ SDO_abortCode_ASCII_to_Terminal();
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)

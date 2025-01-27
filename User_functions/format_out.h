@@ -26,9 +26,11 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 #include "stdio.h"
+#include "CO_NMT_Heartbeat.h"
 
 /* Exported types ------------------------------------------------------------*/
 
+extern UART_HandleTypeDef huart2;
 
 /* Exported constants --------------------------------------------------------*/
 
@@ -43,7 +45,7 @@ uint16_t  SDO_abortCode_to_String(CO_SDO_abortCode_t Code, char* pString);
 void Get_Time(void);
 void Get_Date(void);
 void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn);
-uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms);
+uint32_t RTC_update_and_Terminal(uint32_t Period_update_ms);
 uint16_t Process_Rx_Array_UART_DMA(uint8_t *Array,uint16_t Size_of_Array);
 void Message_2_UART(char *pMessage, uint16_t Argument);/// Argument - optional parameter
 
@@ -52,7 +54,9 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) ;
 
 
-
+uint16_t NMT_State_Info(CO_NMT_internalState_t NMT_State);
+uint16_t LSS_Service_Info(uint8_t LSS_State);
+uint16_t LSS_State_Info(uint8_t LSS_State);
 
 /* Private defines -----------------------------------------------------------*/
 #define CO_Aliex_Disco407green	0x3A

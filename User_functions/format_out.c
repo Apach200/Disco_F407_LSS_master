@@ -14,6 +14,7 @@
 #include "main.h"
 #include "format_out.h"
 #include "lcd.h"
+#include "usbd_cdc_if.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -130,13 +131,13 @@ return (Size_of_Array+1);
 
 ///////////////////////////////////////////////
 
-uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms)
+uint32_t RTC_update_and_Terminal(uint32_t Period_update_ms)
 {
 	static uint8_t Sekunden=0;
 	static uint8_t Minuten=0;
 	static uint8_t Uhr=0;
 	static	uint32_t Tick_old=0;
-    uint16_t cnt=0;
+    //uint16_t cnt=0;
     extern RTC_DateTypeDef DateToUpdate;
     extern RTC_TimeTypeDef sTime;
     //					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
@@ -151,7 +152,6 @@ uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms)
 	  (HAL_GetTick() - Tick_old) > 1999
 	){
 	  Tick_old=HAL_GetTick();
-	  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	  HAL_RTC_GetDate(&hrtc, &DateToUpdate, RTC_FORMAT_BIN);
 	 }
@@ -161,9 +161,10 @@ uint16_t RTC_update_and_Terminal(uint32_t Period_update_ms)
 		Minuten  = sTime.Minutes;
 		Uhr      = sTime.Hours;
 		Get_Time_output(&Uhr, &Minuten, &Sekunden);
-		cnt++;
+		//cnt++;
 		}
-	return (cnt);
+	//return (cnt);
+	return (Tick_old);
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -445,25 +446,24 @@ void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn)
 	char Array_char_x_32[32]={0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08,0x08};
 	uint16_t Length_Msg;
 	extern RTC_TimeTypeDef sTime;
-	//					    0,//uint8_t Hours; Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
-	//						0,//uint8_t Minutes; Max_Data = 59
-	//						0,//uint8_t Seconds; Max_Data = 59 */
-	//						0,//uint8_t TimeFormat;Specifies the RTC AM/PM Time.
-	//						0,//uint32_t SecondFraction;parameter corresponds to a time unit range between [0-1] Second with [1 Sec / SecondFraction +1] granularity
-	//						0,//uint32_t DayLightSaving;  This interface is deprecated.
-	//						0//uint32_t StoreOperation;
+	//		0,//uint8_t Hours;   Max_Data=12 if the RTC_HourFormat_12; Max_Data=23 if the RTC_HourFormat_24
+	//		0,//uint8_t Minutes; Max_Data = 59
+	//		0,//uint8_t Seconds; Max_Data = 59 */
+	//		0,//uint8_t TimeFormat;Specifies the RTC AM/PM Time.
+	//		0,//uint32_t SecondFraction;parameter corresponds to a time unit range between [0-1] Second with [1 Sec / SecondFraction +1] granularity
+	//		0,//uint32_t DayLightSaving;  This interface is deprecated.
+	//		0 //uint32_t StoreOperation;
 
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 		Length_Msg=sprintf( 8+Array_char_x_32 ,
 							"%02d.%02d.%02d", //  System
 							*Uhren, *Minutn, *Sekundn);//	sTime.Hours, sTime.Minutes, sTime.Seconds
 
-
 		HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg+8,5);
-		LCD_SetPos(0, 1);	HAL_Delay(2); LCD_String(8+Array_char_x_32);HAL_Delay(5);
-
+		//CDC_Transmit_FS  (                   (uint8_t*)(Array_char_x_32), Length_Msg+8  );
+		LCD_SetPos(0, 1);	            HAL_Delay(2);
+		LCD_String(8+Array_char_x_32);  HAL_Delay(5);
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -487,7 +487,239 @@ HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg,2
 
 //////////////////////////////////////////////////
 
+uint16_t NMT_State_Info(CO_NMT_internalState_t NMT_State)
+{
+//extern UART_HandleTypeDef htim2;
+//extern char Message_to_Terminal[];
+//uint16_t Lngth;
+
+switch ((uint16_t)(NMT_State))
+		{
+		case 0:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"0, Device is initializing  \n\r",
+								   sizeof "0, Device is initializing  \n\r");break;
+		case 4:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)" 4, Device is stopped    \n\r",
+								   sizeof " 4, Device is stopped    \n\r");break;
+		case 5:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)" 5, Device is in operational state   \n\r",
+								   sizeof " 5, Device is in operational state   \n\r");break;
+
+		case 127:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)" 127, Device is in pre-operational state  \n\r",
+								   sizeof " 127, Device is in pre-operational state  \n\r");break;
+		default:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"-1, Device state is unknown (for heartbeat consumer  \n\r)",
+								   sizeof "-1, Device state is unknown (for heartbeat consumer  \n\r)");break;
+
+		}
+//while(htim2.gState != HAL_UART_STATE_READY){;}
+//HAL_UART_Transmit_DMA(
+//					  &htim2,
+//						(uint8_t*)Message_to_Terminal,
+//						 Lngth);
+//return (Lngth);
+return (0);
+}
+
+//////////////////////////////////////////////////
+
+uint16_t LSS_Service_Info(uint8_t LSS_State)
+{
+//extern UART_HandleTypeDef htim2;
+//extern char Message_to_Terminal[];
+//uint16_t Lngth;
+
+switch (LSS_State)
+		{
+		case 0x04:
+			//Lngth = sprintf( Message_to_Terminal, "Switch state global protocol  \n\r)");
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Switch state global protocol  \n\r)",
+								   sizeof "Switch state global protocol  \n\r)");break;
+
+		case 0x40:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Switch state selective protocol - Vendor ID   \n\r",
+								   sizeof "Switch state selective protocol - Vendor ID   \n\r");break;
+
+		case 0x41:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Switch state selective protocol - Product code   \n\r",
+								   sizeof "Switch state selective protocol - Product code   \n\r");break;
+
+		case 0x42:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Switch state selective protocol - Revision number  \n\r",
+								   sizeof "Switch state selective protocol - Revision number  \n\r");break;
+
+		case 0x43:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Switch state selective protocol - Serial number  \n\r",
+								   sizeof "Switch state selective protocol - Serial number  \n\r");break;
+
+		case 0x44:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Switch state selective protocol - Slave response  \n\r",
+								   sizeof "Switch state selective protocol - Slave response  \n\r");break;
+
+
+		case 0x11:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Configure node ID protocol  \n\r",
+								   sizeof "Configure node ID protocol  \n\r");break;
+
+		case 0x13:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Configure bit timing parameter protocol  \n\r",
+								   sizeof "Configure bit timing parameter protocol  \n\r");break;
+
+		case 0x15:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Activate bit timing parameter protocol  \n\r",
+								   sizeof "Activate bit timing parameter protocol  \n\r");break;
+
+		case 0x17:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Store configuration protocol  \n\r",
+								   sizeof "Store configuration protocol  \n\r");break;
+
+
+		case 0x4F:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"LSS Fastscan response  \n\r",
+								   sizeof "LSS Fastscan response  \n\r");break;
+
+		case 0x51:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"LSS Fastscan protocol  \n\r",
+								   sizeof "LSS Fastscan protocol  \n\r");break;
+
+		case 0x5A:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Inquire identity vendor-ID protocol  \n\r",
+								   sizeof "Inquire identity vendor-ID protocol  \n\r");break;
+
+		case 0x5b:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Inquire identity product-code protocol  \n\r",
+								   sizeof "Inquire identity product-code protocol  \n\r");break;
+
+		case 0x5c:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Inquire identity revision-number protocol  \n\r",
+								   sizeof "Inquire identity revision-number protocol  \n\r");break;
+
+		case 0x5d:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Inquire identity serial-number protocol  \n\r",
+								   sizeof "Inquire identity serial-number protocol  \n\r");break;
+
+		case 0x5e:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"Inquire node-ID protocol  \n\r",
+								   sizeof "Inquire node-ID protocol  \n\r");break;
+
+		default:
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"State_UNKNOWN /n/r",
+								    sizeof "State_UNKNOWN /n/r");break;
+		}
+//while(htim2.gState != HAL_UART_STATE_READY){;}
+//
+//HAL_UART_Transmit_DMA(
+//					  &htim2,
+//						(uint8_t*)Message_to_Terminal,
+//						 Lngth);
+//return (Lngth);
+return (0);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @defgroup CO_LSS_STATE_state CO_LSS_STATE state
+ * @{
+ *
+ * The LSS FSA shall provide the following states:
+ * - Initial: Pseudo state, indicating the activation of the FSA.
+ * - LSS waiting: In this state, the LSS slave device waits for requests.
+ * - LSS configuration: In this state variables may be configured in the LSS slave.
+ * - Final: Pseudo state, indicating the deactivation of the FSA.
+ */
+//#define CO_LSS_STATE_WAITING       0x00U /**< LSS FSA waiting for requests */
+//#define CO_LSS_STATE_CONFIGURATION 0x01U /**< LSS FSA waiting for configuration */
+/** @} */
+
+uint16_t LSS_State_Info(uint8_t LSS_State)
+{
+extern UART_HandleTypeDef htim2;
+//extern char Message_to_Terminal[];
+//uint16_t Lngth;
+//HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+switch (LSS_State)
+		{
+		case 0:
+			//Lngth = sprintf( Message_to_Terminal, "0x00U  CO_LSS_STATE_WAITING       _LSS FSA waiting for requests_    \n\r");
+			//while(htim2.gState != HAL_UART_STATE_READY){;}
+			TerminalInterface.gState = HAL_UART_STATE_READY;
+			//TerminalInterface.State = HAL_UART_STATE_READY;
+			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
+//			HAL_UART_Transmit_DMA(  &htim2,
+//									(uint8_t*)"0x00U  CO_LSS_STATE_WAITING       _LSS FSA waiting for requests_    \n\r",
+//									sizeof"0x00U  CO_LSS_STATE_WAITING       _LSS FSA waiting for requests_    \n\r");
+
+			HAL_UART_Transmit_IT(  &TerminalInterface,
+								(uint8_t*)"0x00 CO_LSS_STATE_WAITING _FSA waiting for requests_\n\r",
+								    sizeof"0x00 CO_LSS_STATE_WAITING _FSA waiting for requests_\n\r");
+			break;
+
+		case 1:
+			//Lngth = sprintf( Message_to_Terminal, "0x01U  CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_  \n\r");
+			//while(htim2.gState != HAL_UART_STATE_READY){;}
+			htim2.gState = HAL_UART_STATE_READY;
+			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
+//			HAL_UART_Transmit_DMA(  &htim2,
+//									(uint8_t*)"0x01U  CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_  \n\r",
+//									sizeof"0x01U  CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_  \n\r");
+
+			HAL_UART_Transmit_IT(  &htim2,
+								(uint8_t*)"0x01 CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_\n\r",
+								    sizeof"0x01 CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_\n\r");
+			break;
+
+		default:
+			//Lngth = sprintf( Message_to_Terminal, "LSS_UNKNOWN_STATE   \n\r");
+			//while(htim2.gState != HAL_UART_STATE_READY){;}
+			htim2.gState = HAL_UART_STATE_READY;
+			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
+//			HAL_UART_Transmit_DMA(  &htim2,
+//									(uint8_t*)"LSS_UNKNOWN_STATE   \n\r",
+//									sizeof"LSS_UNKNOWN_STATE   \n\r");
+			HAL_UART_Transmit_IT(  &htim2,
+								(uint8_t*)"LSS_UNKNOWN_STATE   \n\r",
+								    sizeof"LSS_UNKNOWN_STATE   \n\r");
+			break;
+		}
+//while(htim2.gState != HAL_UART_STATE_READY){;}
+//HAL_UART_Transmit_DMA(  &htim2,(uint8_t*)Message_to_Terminal,Lngth);
+//return (Lngth);
+return (0);
+}
 
 
 
 
+
+
+
+
+
+
+
+////////////////////////////////////

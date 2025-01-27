@@ -185,11 +185,11 @@ uint16_t LSS_Init_Message_Return(CO_ReturnError_t Err, char* String_64){
 uint16_t	Lng_String;
 uint8_t	Num;
 
-char Message_0[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_NO = 0, /**< Operation completed successfully */\n\r"};
-char Message_1[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_ILLEGAL_ARGUMENT = -1, /**< Error in function arguments */\n\r"};
-char Message_2[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_OUT_OF_MEMORY = -2,   /**< Memory allocation failed */\n\r" };
-char Message_3[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_TIMEOUT = -3,   /**< Function timeout */\n\r"   };
-char Message_4[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_ILLEGAL_BAUDRATE = -4, /**< Illegal baudrate passed to function CO_CANmodule_init() */\n\r"  };
+char Message_0[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_NO = 0,  __Operation completed successfully__          \r\n\r\n"};
+char Message_1[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_ILLEGAL_ARGUMENT = -1,  __Error in function arguments__    \n\r"};
+char Message_2[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_OUT_OF_MEMORY = -2,   __Memory allocation failed          \n\r" };
+char Message_3[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_TIMEOUT = -3,   __Function timeout__                    \n\r"   };
+char Message_4[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_ILLEGAL_BAUDRATE = -4, __Illegal baudrate passed to function CO_CANmodule_init()__\n\r"  };
 char Message_5[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_RX_OVERFLOW = -5, /**< Previous message was not processed yet */\n\r"  };
 char Message_6[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_RX_PDO_OVERFLOW = -6,  /**< previous PDO was not processed yet */\n\r" };
 char Message_7[] ={"\n\rLSS_Init_Result\n\r  CO_ERROR_RX_MSG_LENGTH = -7,    /**< Wrong receive message length */\n\r"   };
@@ -232,6 +232,8 @@ case 18:Lng_String = sprintf((char*)String_64, Message_18);break;
 case 19:Lng_String = sprintf((char*)String_64, Message_19);break;
 default:break;
 }
+
+HAL_UART_Transmit(&TerminalInterface, (uint8_t*)String_64, Lng_String, 100);
 return (Lng_String);
 }
 

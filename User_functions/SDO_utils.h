@@ -38,7 +38,7 @@ extern "C" {
 
 
 /* Exported macro ------------------------------------------------------------*/
-
+#define TerminalInterface		huart2
 
 /* Exported functions prototypes ---------------------------------------------*/
 CO_SDO_abortCode_t	read_SDO	(
