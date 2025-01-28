@@ -531,14 +531,22 @@ return (0);
 
 uint16_t LSS_Service_Info(uint8_t LSS_State)
 {
-//extern UART_HandleTypeDef htim2;
-//extern char Message_to_Terminal[];
-//uint16_t Lngth;
+#define Send_Info 1
+
+#if Send_Info
+
+extern    UART_HandleTypeDef huart2;
+#define TerminalInterface huart2
+static uint32_t Time_old;
+
+if((HAL_GetTick()-Time_old)>2010 )
+{
+Time_old  = HAL_GetTick();
+
 
 switch (LSS_State)
 		{
 		case 0x04:
-			//Lngth = sprintf( Message_to_Terminal, "Switch state global protocol  \n\r)");
 			HAL_UART_Transmit_IT(  &TerminalInterface,
 								(uint8_t*)"Switch state global protocol  \n\r)",
 								   sizeof "Switch state global protocol  \n\r)");break;
@@ -630,14 +638,11 @@ switch (LSS_State)
 								(uint8_t*)"State_UNKNOWN /n/r",
 								    sizeof "State_UNKNOWN /n/r");break;
 		}
-//while(htim2.gState != HAL_UART_STATE_READY){;}
-//
-//HAL_UART_Transmit_DMA(
-//					  &htim2,
-//						(uint8_t*)Message_to_Terminal,
-//						 Lngth);
-//return (Lngth);
-return (0);
+
+}else{return (0);}
+#endif
+return (1);
+#undef Send_Info
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -658,58 +663,52 @@ return (0);
 
 uint16_t LSS_State_Info(uint8_t LSS_State)
 {
-extern UART_HandleTypeDef htim2;
-//extern char Message_to_Terminal[];
-//uint16_t Lngth;
-//HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13, GPIO_PIN_SET);
+#define Send_Info 0
+
+#if Send_Info
+
+extern    UART_HandleTypeDef huart2;
+#define TerminalInterface huart2
+static uint32_t Time_old;
+
+if((HAL_GetTick()-Time_old)>2010 )
+{
+Time_old  = HAL_GetTick();
+
+
 switch (LSS_State)
 		{
 		case 0:
-			//Lngth = sprintf( Message_to_Terminal, "0x00U  CO_LSS_STATE_WAITING       _LSS FSA waiting for requests_    \n\r");
-			//while(htim2.gState != HAL_UART_STATE_READY){;}
 			TerminalInterface.gState = HAL_UART_STATE_READY;
 			//TerminalInterface.State = HAL_UART_STATE_READY;
 			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
-//			HAL_UART_Transmit_DMA(  &htim2,
-//									(uint8_t*)"0x00U  CO_LSS_STATE_WAITING       _LSS FSA waiting for requests_    \n\r",
-//									sizeof"0x00U  CO_LSS_STATE_WAITING       _LSS FSA waiting for requests_    \n\r");
-
 			HAL_UART_Transmit_IT(  &TerminalInterface,
 								(uint8_t*)"0x00 CO_LSS_STATE_WAITING _FSA waiting for requests_\n\r",
 								    sizeof"0x00 CO_LSS_STATE_WAITING _FSA waiting for requests_\n\r");
 			break;
 
 		case 1:
-			//Lngth = sprintf( Message_to_Terminal, "0x01U  CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_  \n\r");
-			//while(htim2.gState != HAL_UART_STATE_READY){;}
+
 			htim2.gState = HAL_UART_STATE_READY;
 			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
-//			HAL_UART_Transmit_DMA(  &htim2,
-//									(uint8_t*)"0x01U  CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_  \n\r",
-//									sizeof"0x01U  CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_  \n\r");
-
 			HAL_UART_Transmit_IT(  &htim2,
 								(uint8_t*)"0x01 CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_\n\r",
 								    sizeof"0x01 CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_\n\r");
 			break;
 
 		default:
-			//Lngth = sprintf( Message_to_Terminal, "LSS_UNKNOWN_STATE   \n\r");
-			//while(htim2.gState != HAL_UART_STATE_READY){;}
 			htim2.gState = HAL_UART_STATE_READY;
 			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
-//			HAL_UART_Transmit_DMA(  &htim2,
-//									(uint8_t*)"LSS_UNKNOWN_STATE   \n\r",
-//									sizeof"LSS_UNKNOWN_STATE   \n\r");
 			HAL_UART_Transmit_IT(  &htim2,
 								(uint8_t*)"LSS_UNKNOWN_STATE   \n\r",
 								    sizeof"LSS_UNKNOWN_STATE   \n\r");
 			break;
 		}
-//while(htim2.gState != HAL_UART_STATE_READY){;}
-//HAL_UART_Transmit_DMA(  &htim2,(uint8_t*)Message_to_Terminal,Lngth);
-//return (Lngth);
+
+return (1);}else{return (0);}
+#endif
 return (0);
+#undef Send_Info
 }
 
 
