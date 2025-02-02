@@ -47,7 +47,9 @@ void Get_Date(void);
 void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn);
 uint32_t RTC_update_and_Terminal(uint32_t Period_update_ms);
 uint16_t Process_Rx_Array_UART_DMA(uint8_t *Array,uint16_t Size_of_Array);
-void Message_2_UART(char *pMessage, uint16_t Argument);/// Argument - optional parameter
+void Message_2_UART(char *pMessage);
+void Message_2_UART_u16(char *pMessage, uint16_t Argument);
+void Message_2_UART_u32(char *pMessage, uint32_t Argument);
 
 float process_adc_buffer(uint16_t *buffer);
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
@@ -59,11 +61,12 @@ uint16_t LSS_Service_Info(uint8_t LSS_State);
 uint16_t LSS_State_Info(uint8_t LSS_State);
 
 /* Private defines -----------------------------------------------------------*/
-#define CO_Aliex_Disco407green	0x3A
-#define CO_Disco407_Blue		0x3b
-#define CO_Lower__f407xx		0x3c
-#define CO_Upper_F407XX			0x3d
-#define CO_Disco407_Green_1		0x3e
+#define CO_Aliex_Disco407green		0x3A
+#define CO_Disco407_Blue			0x3b
+#define CO_Lower__f407xx			0x3c
+#define CO_Upper_F407XX				0x3d
+#define CO_Disco407_Green_1			0x3e
+#define BlueBoard__STM32F407_LCD	0x3f
 
 #define Make_Read_SDO			1
 #define TerminalInterface		huart2

@@ -15,7 +15,7 @@
   *
   *
   *
-  *			Aliboard__STM32F407_LCD
+  *			BlueBoard__STM32F407_LCD
   *
   *				NodeID = 0x3f
   *
@@ -29,6 +29,7 @@
 #include "dma.h"
 #include "i2c.h"
 #include "rtc.h"
+#include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
@@ -206,6 +207,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM5_Init();
   MX_TIM1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   /* CANHandle : Pass in the CAN Handle to this function and it wil be used for all CAN Communications. It can be FDCan or CAN
@@ -246,7 +248,7 @@ Datum_to_1602LCD();
 	canOpenNodeSTM32.CANHandle = &hcan1;
 	canOpenNodeSTM32.HWInitFunction = MX_CAN1_Init;
 	canOpenNodeSTM32.timerHandle = &htim4;
-	canOpenNodeSTM32.desiredNodeID = CO_Disco407_Blue;//0x3b;
+	canOpenNodeSTM32.desiredNodeID = BlueBoard__STM32F407_LCD;//0x3f;
 	canOpenNodeSTM32.baudrate = 125*4;
 uint16_t Ret_value = canopen_app_init(&canOpenNodeSTM32);
 	CO_Init_Return_State(Ret_value );
@@ -262,49 +264,16 @@ Err_return = CO_LSSmaster_init(
 							  canOpenNodeSTM32.canOpenStack->CANmodule ,		//CO_CANmodule_t* CANdevTx,
 							  canOpenNodeSTM32.canOpenStack->TX_IDX_LSS_MST,	//uint16_t CANdevTxIdx,
 							  CO_CAN_ID_LSS_MST									//uint16_t CANidLssMaster
-							);
+							  );
 
 
 L_str = LSS_Init_Message_Return(Err_return, String_2_UART);
-
-
 
 //		 uint16_t StateLSS =  canOpenNodeSTM32.canOpenStack->LSSmaster->state ;
 //		 L_str = sprintf(String_2_UART,"canOpenNodeSTM32.canOpenStack->LSSmaster->state=0x%04x;\n\r",StateLSS);
 		  OD_PERSIST_COMM.x6000_disco_Blue_VAR32_6000_TX=0;
 		  Local_Count=0;
 
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process();HAL_Delay(1);
-
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
-//
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
-//
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
-//
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
-//
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
-//
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
-//
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, !canOpenNodeSTM32.outStatusLEDGreen);
-//		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
-//		  canopen_app_process(); HAL_Delay(1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -314,7 +283,7 @@ L_str = LSS_Init_Message_Return(Err_return, String_2_UART);
 		  LCD_Menu_Encoder_with_Key( &VSar_0, &VSar_1, &VSar_2);
 		  while (1)
 		  {
-		  //Encoder_to_LCD();
+		  Encoder_to_LCD();
 		  RTC_update_and_Terminal(2000);
 		  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, !canOpenNodeSTM32.outStatusLEDRed  );
 	      // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, !canOpenNodeSTM32.outStatusLEDGreen);
@@ -322,55 +291,7 @@ L_str = LSS_Init_Message_Return(Err_return, String_2_UART);
 //		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14, !canOpenNodeSTM32.outStatusLEDRed  );
 
 		  canopen_app_process();
-#if 0
-			if(tmp32u_0 != OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R)
-			{
-			tmp32u_0 = OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R;
-			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		    Length_of_Message = sprintf( Message_to_Terminal,
-		  	  	                     "copy  OD_PERSIST_COMM.x6001_disco_Blue_VAR32_6001_R "
-                  	  	  	  	  	  " to tmp32u_0 = 0x%X%X\n\r",(uint16_t)(tmp32u_0>>16),(uint16_t)tmp32u_0);
-		    //HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
-			}
 
-
-			if(tmp32u_1 != OD_PERSIST_COMM.x6002_disco_Blue_VAR32_6002_R)
-			{
-			Length_of_Message = sprintf( Message_to_Terminal,
-		                "check for updates tmp32u_1 = OD_PERSIST_COMM.x6002_disco_Blue_VAR32_6002_R"
-		                "tmp32u_1 = 0x%X%X\n\r",(uint16_t)(tmp32u_1>>16),(uint16_t)tmp32u_1);
-				while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-			//HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
-			}
-
-			Count_of_while1++;//Counter_of_while_cycles
-#endif	//4
-   if(0)//(Count_of_while1==2000)
-   {
-	   uint32_t Local_var;
-//	   CO_LSSmaster_t My_CO_LSSmaster;
-//	   CO_ReturnError_t Code_Err;
-//	   Code_Err = CO_LSSmaster_init(
-//			   	   	   	   	   	   My_CO_LSSmaster,
-//								   10,
-//								   CANdevRx,
-//								   CANdevRxIdx,
-//								   CANidLssSlave,
-//								   CANdevTx,
-//								   CANdevTxIdx,
-//								   CANidLssMaster);
-
-	   Local_var = canOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer;
-	   //Local_var = CO_GET_CNT(LSS_MST);
-	   while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		Length_of_Message = sprintf( Message_to_Terminal,
-	                				"\n\rcanOpenNodeSTM32.canOpenStack->LSSmaster->timeoutTimer"
-	                				" = 0x%04X%04X  \n\r\n\r\n\r\n\r\n\r\n\r",
-									(uint16_t)(Local_var>>16),(uint16_t)Local_var);
-	HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Message_to_Terminal, Length_of_Message);
-	while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-
-   }
     // TPDO_send(1700); /// uint32_t Period_ms
 
     /* USER CODE END WHILE */
@@ -482,7 +403,8 @@ void Board_Name_to_Terminal(void)
 //	const char Message_1[]={"*  Upper Blackboard  STM32F4XX___Ali     *\n\r"};
 //	const char Message_1[]={"*  Lower Blackboard  STM32F4XX___Ali     *\n\r"};
 //  const char Message_1[]={"*  STM32F4DISCOVERY Green_board China    *\n\r"};
-	const char Message_1[]={"*  STM32F4DISCOVERY Blue_board Original  *\n\r"};
+//	const char Message_1[]={"*  STM32F4DISCOVERY Blue_board Original  *\n\r"};
+	const char Message_1[]={"*  BlueBoard_STM32F407_LCD_Original_2211 *\n\r"};
 //  const char Message_1[]={"*  STM32F4DISCOVERY Green_board Original *\n\r"};
 //  const char Message_1[]={"*  Blackboard  STM32F4XX___Ali with LCD  *\n\r"};
 	char Array_for_Messages[128]={};

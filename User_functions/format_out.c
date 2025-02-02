@@ -79,7 +79,7 @@ float process_adc_buffer(uint16_t *buffer)
 
 
 
-void Message_2_UART(char *pMessage, uint16_t Argument)
+void Message_2_UART(char *pMessage)
 {
 static uint8_t	Array_2_UART_a[128];
 static uint8_t	Array_2_UART_b[128];
@@ -89,23 +89,33 @@ uint16_t Size_to_Send;
 
 switch (Select_Array)
 {
-case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage ,Argument);
+case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+		Array_2_UART_a[Size_to_Send+0]=0x0d;
+		Array_2_UART_a[Size_to_Send+1]=0x0A;
 		Select_Array=1;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send);
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send+2);
 break;
-case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage,Argument);
+
+case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
+		Array_2_UART_b[Size_to_Send+0]=0x0d;
+		Array_2_UART_b[Size_to_Send+1]=0x0d;
 		Select_Array=2;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b, Size_to_Send);
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b,  Size_to_Send+2);
 break;
-case 2:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage,Argument);
+
+case 2:	Size_to_Send = sprintf((char*)Array_2_UART_c,pMessage);
+		Array_2_UART_c[Size_to_Send+0]=0x0d;
+		Array_2_UART_c[Size_to_Send+1]=0x0d;
 		Select_Array=0;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c, Size_to_Send);
+		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c,  Size_to_Send+2);
 break;
-default: break;
-}
+
+default:
+break;
+}//switch (Select_Array)
 
 Select_Array++;
 Select_Array = Select_Array %3;
@@ -113,6 +123,82 @@ Select_Array = Select_Array %3;
 
 ///////////////////////////////////////////////////////////////////////////
 
+void Message_2_UART_u16(char *pMessage, uint16_t Argument)
+{
+static uint8_t	Array_2_UART_a[128];
+static uint8_t	Array_2_UART_b[128];
+static uint8_t	Array_2_UART_c[128];
+uint8_t added_length;
+static uint8_t Select_Array =0;
+uint16_t Size_to_Send=128;
+
+	switch (Select_Array)
+	{
+	case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+			added_length = sprintf((char*)&Array_2_UART_a[Size_to_Send-1]  ," = 0x%x \n\r",Argument);
+			Select_Array=1;
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send + added_length);
+	break;
+	case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
+			added_length = sprintf((char*)&Array_2_UART_b[Size_to_Send-1]  ," = 0x%x \n\r",Argument);
+			Select_Array=2;
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b,  Size_to_Send + added_length);
+	break;
+	case 2:	Size_to_Send = sprintf((char*)Array_2_UART_c,pMessage);
+			added_length = sprintf((char*)&Array_2_UART_c[Size_to_Send-1]  ," = 0x%x \n\r",Argument);
+			Select_Array=0;
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c,  Size_to_Send + added_length);
+	break;
+	default: break;
+	}//switch (Select_Array)
+
+Select_Array++;
+Select_Array = Select_Array %3;
+}
+///////////////////////////////////////////////////////////////////////////
+
+void Message_2_UART_u32(char *pMessage, uint32_t Argument)
+{
+static uint8_t	Array_2_UART_a[128];
+static uint8_t	Array_2_UART_b[128];
+static uint8_t	Array_2_UART_c[128];
+uint8_t added_length;
+static uint8_t Select_Array =0;
+uint16_t Size_to_Send;
+
+	switch (Select_Array)
+	{
+	case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
+			added_length = sprintf((char*)&Array_2_UART_a[Size_to_Send-1]  ," = 0x%x%x \n\r",(uint16_t)(Argument>>16),(uint16_t)(Argument & 0x0FFFF));
+			Select_Array=1;
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send + added_length);
+	break;
+	case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
+			added_length = sprintf((char*)&Array_2_UART_a[Size_to_Send-1]  ," = 0x%x%x \n\r",(uint16_t)(Argument>>16),(uint16_t)(Argument & 0x0FFFF));
+			Select_Array=2;
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b,  Size_to_Send + added_length);
+	break;
+	case 2:	Size_to_Send = sprintf((char*)Array_2_UART_c,pMessage);
+			added_length = sprintf((char*)&Array_2_UART_a[Size_to_Send-1]  ," = 0x%x%x \n\r",(uint16_t)(Argument>>16),(uint16_t)(Argument & 0x0FFFF));
+			Select_Array=0;
+			while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
+			HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c,  Size_to_Send + added_length);
+	break;
+	default: break;
+	}//switch (Select_Array)
+
+Select_Array++;
+Select_Array = Select_Array %3;
+}
+///////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////
 
 uint16_t Process_Rx_Array_UART_DMA(uint8_t *Array,uint16_t Size_of_Array)
 {
@@ -459,10 +545,10 @@ void Get_Time_output(uint8_t *Uhren,uint8_t *Minutn,uint8_t *Sekundn)
 							"%02d.%02d.%02d", //  System
 							*Uhren, *Minutn, *Sekundn);//	sTime.Hours, sTime.Minutes, sTime.Seconds
 
-		HAL_UART_Transmit( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg+8,5);
+		HAL_UART_Transmit_IT( &TerminalInterface, (uint8_t*)(Array_char_x_32), Length_Msg+8);
 		//CDC_Transmit_FS  (                   (uint8_t*)(Array_char_x_32), Length_Msg+8  );
-		LCD_SetPos(0, 1);	            HAL_Delay(2);
-		LCD_String(8+Array_char_x_32);  HAL_Delay(5);
+		LCD_SetPos(0, 1);	            HAL_Delay(1);
+		LCD_String(8+Array_char_x_32);  HAL_Delay(1);
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
 }
 

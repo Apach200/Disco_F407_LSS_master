@@ -16,14 +16,14 @@
 
         Created:      23.11.2020 16:00:00
         Created By:   01.Nov.2024
-        Modified:     24.11.2024 15:55:34
+        Modified:     02.02.2025 21:13:56
         Modified By:  
 
     Device Info:
         Vendor Name:  Chromos_A
         Vendor ID:    0xAFFEAFFd
         Product Name: Disco407_Blue
-        Product ID:   0x3b
+        Product ID:   0x00410000
 
         Description:  EVboard_Disco_F407_Blue
 *******************************************************************************/
