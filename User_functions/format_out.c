@@ -94,7 +94,7 @@ case 0:	Size_to_Send = sprintf((char*)Array_2_UART_a,pMessage);
 		Array_2_UART_a[Size_to_Send+1]=0x0A;
 		Select_Array=1;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send+2);
+		HAL_UART_Transmit_IT( &TerminalInterface, (uint8_t*)Array_2_UART_a, Size_to_Send+2);
 break;
 
 case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
@@ -102,7 +102,7 @@ case 1:	Size_to_Send = sprintf((char*)Array_2_UART_b,pMessage);
 		Array_2_UART_b[Size_to_Send+1]=0x0d;
 		Select_Array=2;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_b,  Size_to_Send+2);
+		HAL_UART_Transmit_IT( &TerminalInterface, (uint8_t*)Array_2_UART_b,  Size_to_Send+2);
 break;
 
 case 2:	Size_to_Send = sprintf((char*)Array_2_UART_c,pMessage);
@@ -110,7 +110,7 @@ case 2:	Size_to_Send = sprintf((char*)Array_2_UART_c,pMessage);
 		Array_2_UART_c[Size_to_Send+1]=0x0d;
 		Select_Array=0;
 		while(TerminalInterface.gState != HAL_UART_STATE_READY){;}
-		HAL_UART_Transmit_DMA( &TerminalInterface, (uint8_t*)Array_2_UART_c,  Size_to_Send+2);
+		HAL_UART_Transmit_IT( &TerminalInterface, (uint8_t*)Array_2_UART_c,  Size_to_Send+2);
 break;
 
 default:
@@ -196,7 +196,67 @@ Select_Array++;
 Select_Array = Select_Array %3;
 }
 ///////////////////////////////////////////////////////////////////////////
+////////////////////////////////////
 
+void Datum_Time_from_PC(
+						RTC_DateTypeDef Date_Upd,
+						RTC_TimeTypeDef sTime_Set
+						)
+ {
+	  //RTC_DateTypeDef Date_Upd;
+	  //RTC_TimeTypeDef sTime_Set;
+
+	  char Macro_Time[] = {__TIME__};
+	  char Macro_Date[] = {__DATE__};
+	  uint16_t Lng =  sizeof(__DATE__);
+	  //uint16_t Lng_T =  sizeof(__TIME__);
+	  Date_Upd.Year = (*(Macro_Date + Lng -2)-0x30)*10 + (*(Macro_Date + Lng -1)-0x30)*1;
+	  if(
+			  *(Macro_Date + Lng -8)==0x31
+			  ||
+			  *(Macro_Date + Lng -8)==0x31
+		){
+		   Date_Upd.Date = (*(Macro_Date + Lng -8)-0x30)*10 + (*(Macro_Date + Lng -7)-0x30)*1;
+	  	 } else {
+	  		 	 Date_Upd.Date = *(Macro_Date + Lng -7)-0x30;
+	  	 	    }
+
+
+	  if(*(Macro_Date + 0)=='J')
+	  {
+	  	if(*(Macro_Date + 1)=='a'){Date_Upd.Month = 1;}
+	  	if(*(Macro_Date + 2)=='n'){Date_Upd.Month = 6;}
+	  	if(*(Macro_Date + 2)=='l'){Date_Upd.Month = 7;}
+	  }
+
+	  if(*(Macro_Date + 0)=='F'){Date_Upd.Month = 2;}
+
+	  if(*(Macro_Date + 0)=='M')
+	  	{
+	  	if(*(Macro_Date + 2)=='r'){Date_Upd.Month = 3;}
+	  	if(*(Macro_Date + 2)=='y'){Date_Upd.Month = 5;}
+	  	}
+
+	  if(*(Macro_Date + 0)=='A')
+	  {
+	  	if(*(Macro_Date + 1)=='p'){Date_Upd.Month = 4;}
+	  	if(*(Macro_Date + 1)=='u'){Date_Upd.Month = 8;}
+	  }
+
+	  if(*(Macro_Date + 0)=='S'){Date_Upd.Month = 9;}
+	  if(*(Macro_Date + 0)=='O'){Date_Upd.Month = 10;}
+	  if(*(Macro_Date + 0)=='N'){Date_Upd.Month = 11;}
+	  if(*(Macro_Date + 0)=='D'){Date_Upd.Month = 12;}
+	  HAL_RTC_SetDate(&hrtc, &Date_Upd, RTC_FORMAT_BIN);
+
+	  	sTime_Set.Hours   = (*(Macro_Time+0)-0x30)*10 + (*(Macro_Time +1)-0x30)*1;
+	  	sTime_Set.Minutes = (*(Macro_Time+3)-0x30)*10 + (*(Macro_Time +4)-0x30)*1;
+	  	sTime_Set.Seconds = (*(Macro_Time+6)-0x30)*10 + (*(Macro_Time +7)-0x30)*1;
+	  	HAL_RTC_SetTime(&hrtc, &sTime_Set,        RTC_FORMAT_BIN);
+
+ }
+
+////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -749,10 +809,9 @@ return (1);
 
 uint16_t LSS_State_Info(uint8_t LSS_State)
 {
-#define Send_Info 0
+#define Send_Info 1
 
 #if Send_Info
-
 extern    UART_HandleTypeDef huart2;
 #define TerminalInterface huart2
 static uint32_t Time_old;
@@ -775,17 +834,17 @@ switch (LSS_State)
 
 		case 1:
 
-			htim2.gState = HAL_UART_STATE_READY;
+			TerminalInterface.gState = HAL_UART_STATE_READY;
 			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
-			HAL_UART_Transmit_IT(  &htim2,
+			HAL_UART_Transmit_IT(  &TerminalInterface,
 								(uint8_t*)"0x01 CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_\n\r",
 								    sizeof"0x01 CO_LSS_STATE_CONFIGURATION _LSS FSA waiting for configuration_\n\r");
 			break;
 
 		default:
-			htim2.gState = HAL_UART_STATE_READY;
+			TerminalInterface.gState = HAL_UART_STATE_READY;
 			hdma_usart2_tx.State = HAL_DMA_STATE_READY;
-			HAL_UART_Transmit_IT(  &htim2,
+			HAL_UART_Transmit_IT(  &TerminalInterface,
 								(uint8_t*)"LSS_UNKNOWN_STATE   \n\r",
 								    sizeof"LSS_UNKNOWN_STATE   \n\r");
 			break;
@@ -798,6 +857,74 @@ return (0);
 }
 
 
+
+////////////////////////////////////
+
+uint16_t CAN_GetState(CAN_HandleTypeDef *hcan, char* String)
+{
+	  uint8_t state = (uint8_t)(hcan->State);
+	  uint16_t Length_String;
+switch(state)
+{
+case HAL_CAN_STATE_RESET:
+	Length_String =sprintf(String,"CAN_not_yet_initialized_or_disabled\n\r\n\r");
+	return (Length_String);
+	break;
+
+case HAL_CAN_STATE_READY:
+	Length_String =sprintf(String,"CAN_STATE_READY\n\r\n\r");
+	return (Length_String);
+	break;
+
+case HAL_CAN_STATE_LISTENING:
+	Length_String =sprintf(String,"CAN_STATE_LISTENING\n\r\n\r");
+	return (Length_String);
+	break;
+
+case HAL_CAN_STATE_SLEEP_PENDING:
+	Length_String =sprintf(String,"CAN_STATE_SLEEP_PENDING\n\r\n\r");
+	return (Length_String);
+	break;
+
+case HAL_CAN_STATE_SLEEP_ACTIVE:
+	Length_String =sprintf(String,"CAN_STATE_SLEEP_ACTIVE\n\r\n\r");
+	return (Length_String);
+	break;
+
+case HAL_CAN_STATE_ERROR:
+	Length_String =sprintf(String,"CAN_error_state\n\r\n\r");
+	return (Length_String);
+	break;
+
+default:	Length_String =sprintf(String,"CAN_UNknown_state\n\r\n\r");
+	return (Length_String);
+	break;
+}
+
+//if ((state == HAL_CAN_STATE_READY) ||
+//  (state == HAL_CAN_STATE_LISTENING))
+//{
+///* Check sleep mode acknowledge flag */
+//if ((hcan->Instance->MSR & CAN_MSR_SLAK) != 0U)
+//{
+//  /* Sleep mode is active */
+//  state = HAL_CAN_STATE_SLEEP_ACTIVE;
+//  Length_String =sprintf(String,"CAN_STATE_SLEEP_ACTIVE___READY_or_LISTENING \n\r\n\r");
+//}
+///* Check sleep mode request flag */
+//else if ((hcan->Instance->MCR & CAN_MCR_SLEEP) != 0U)
+//{
+//  /* Sleep mode request is pending */
+//  state = HAL_CAN_STATE_SLEEP_PENDING;
+//  Length_String =sprintf(String,"CAN_STATE_SLEEP_PENDING___READY_or_LISTENING \n\r\n\r");
+//}else{/* Neither sleep mode request nor sleep mode acknowledge */}
+//
+//
+//
+//
+//}
+return (Length_String);
+}
 
 
 

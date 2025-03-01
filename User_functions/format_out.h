@@ -50,7 +50,11 @@ uint16_t Process_Rx_Array_UART_DMA(uint8_t *Array,uint16_t Size_of_Array);
 void Message_2_UART(char *pMessage);
 void Message_2_UART_u16(char *pMessage, uint16_t Argument);
 void Message_2_UART_u32(char *pMessage, uint32_t Argument);
-
+uint16_t CAN_GetState(CAN_HandleTypeDef *hcan, char* String);
+void Datum_Time_from_PC(
+						RTC_DateTypeDef Date_Upd,
+						RTC_TimeTypeDef sTime_Set
+						);
 float process_adc_buffer(uint16_t *buffer);
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) ;
